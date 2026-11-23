@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import NavAuth from "@/components/NavAuth";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,9 +31,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Link>
           <div className="nav-links">
             <Link href="/#a-venir">Lives</Link>
-            <Link href="/regie" className="btn-ghost">
-              Espace DJ
-            </Link>
+            <Link href="/tarifs">Tarifs</Link>
+            <NavAuth />
           </div>
         </nav>
         <main>{children}</main>

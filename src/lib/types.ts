@@ -5,6 +5,8 @@ export type Dj = {
   user_id: string | null;
   name: string;
   slug: string;
+  /** Type de profil : DJ ou magasin de vinyles (mêmes tarifs). */
+  kind: "dj" | "store";
   bio: string | null;
   genre: string | null;
   discogs_url: string | null;
