@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Banger<span>Tunes</span>
           </Link>
           <div className="nav-links">
-            <Link href="/#a-venir">Lives</Link>
+            <Link href="/explorer">Explorer</Link>
             <Link href="/tarifs">Tarifs</Link>
             <Link href="/guide">Guide</Link>
             <NavAuth />

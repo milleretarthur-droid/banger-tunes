@@ -13,6 +13,11 @@ export type Dj = {
   instagram_url: string | null;
   photo_url: string | null;
   access_status: "gratuit" | "payant";
+  /** Compte suspendu par l'administration : profil et lives masqués. */
+  suspended: boolean;
+  city: string | null;
+  lat: number | null;
+  lng: number | null;
   created_at: string;
 };
 

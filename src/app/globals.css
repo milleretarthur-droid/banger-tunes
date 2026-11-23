@@ -470,3 +470,59 @@ img { display: block; max-width: 100%; }
 .track-row.is-sold .track-artist, .track-row.is-sold > div:nth-child(2) > div:first-child { text-decoration: line-through; text-decoration-color: var(--paper-dim); }
 .replay-btn { background: none; border: 0; color: var(--gold); font: 500 13px "Inter", sans-serif; margin-left: 10px; cursor: pointer; }
 .replay-btn:hover { text-decoration: underline; }
+
+/* ---------- Lot 2 : admin, explorer, carte, suivis ---------- */
+.field textarea {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 2px; color: var(--paper);
+  font: 400 15px "Inter", sans-serif; padding: 11px 12px; width: 100%; resize: vertical;
+}
+.field textarea:focus { border-color: var(--gold); outline: none; }
+.is-following { border-color: var(--gold); color: var(--gold); }
+
+.admin { max-width: 1180px; margin: 0 auto; padding: 40px 5vw 72px; }
+.admin h1 { font-size: clamp(32px, 5vw, 52px); margin-bottom: 20px; }
+.admin h2 { font-size: 22px; margin: 32px 0 14px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; }
+.kpi-label { font-size: 12px; color: var(--paper-dim); letter-spacing: 0.03em; }
+.kpi-value { font-size: 40px; margin: 6px 0 2px; }
+.kpi-gold .kpi-value { color: var(--gold); }
+.kpi-red .kpi-value { color: var(--red); }
+.kpi-hint { font-size: 12px; color: var(--paper-dim); line-height: 1.4; }
+.chart { margin: 0; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 12px; color: var(--paper-dim); margin-top: 8px; }
+.chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.admin-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.admin-search, .explorer-search {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 2px; color: var(--paper);
+  font: 400 15px "Inter", sans-serif; padding: 11px 14px; min-width: 260px; flex: 1;
+}
+.admin-search:focus, .explorer-search:focus { border-color: var(--gold); outline: none; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.admin-table th { text-align: left; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--paper-dim); padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--surface); white-space: nowrap; }
+.admin-table td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.admin-table tr:last-child td { border-bottom: 0; }
+.admin-table tr.is-suspended { opacity: 0.55; }
+.admin-table .row-actions { justify-content: flex-start; min-width: 280px; }
+.admin-table .btn-ghost { padding: 6px 10px; font-size: 12px; }
+
+.explorer-search { width: 100%; margin-bottom: 14px; font-size: 17px; padding: 14px 16px; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.filter-sep { width: 1px; height: 22px; background: var(--line); margin: 0 6px; }
+.explorer-bar { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 14px; gap: 12px; }
+.map-box { height: 460px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.map-loading { display: flex; align-items: center; justify-content: center; color: var(--paper-dim); }
+.map-box .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.6); }
+.map-box .leaflet-container { background: #111; font-family: "Inter", sans-serif; }
+.map-pin span { display: block; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #0e0e0c; box-shadow: 0 0 0 2px currentColor; background: currentColor; }
+.pin-live { color: var(--red); }
+.pin-soon { color: var(--gold); }
+.pin-replay { color: #8c877d; }
+.legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: currentColor; margin: 0 4px 0 10px; vertical-align: middle; }
+.map-popup { display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
+.map-popup a { color: #0e0e0c; text-decoration: underline; }
+.map-popup-name { font-weight: 700; font-size: 15px; }
+.map-popup-city { color: #666; font-size: 12px; margin-bottom: 4px; }
+.map-popup-live { font-size: 13px; }

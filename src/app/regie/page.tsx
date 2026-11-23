@@ -12,6 +12,7 @@ import { useSession } from "@/lib/useSession";
 import type { Dj, Live } from "@/lib/types";
 import BillingPanel from "./BillingPanel";
 import CreatorSetup from "./CreatorSetup";
+import ProfilePanel from "./ProfilePanel";
 
 export default function RegiePage() {
   const { session, ready } = useSession();
@@ -163,6 +164,9 @@ export default function RegiePage() {
 
       {dj && (
         <>
+          <h2 className="display">Mon profil</h2>
+          <ProfilePanel dj={dj} onSaved={setDj} />
+
           <h2 className="display">Mon offre</h2>
           <BillingPanel userId={session.user.id} refreshKey={billingKey} onCanPublish={setCanPublish} />
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import FollowButton from "@/components/FollowButton";
 import { getSupabase } from "@/lib/supabase";
 import type { Dj, Live, Track } from "@/lib/types";
 import { youtubeEmbedUrl } from "@/lib/youtube";
@@ -108,8 +110,13 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
         <h1 className="display live-title">{live.title}</h1>
         {dj && (
           <p className="live-dj">
-            avec <strong>{dj.name}</strong>
+            avec{" "}
+            <Link href={`/dj/${dj.slug}`}>
+              <strong>{dj.name}</strong>
+            </Link>
             {dj.genre ? ` · ${dj.genre}` : ""}
+            {dj.city ? ` · ${dj.city}` : ""}{" "}
+            <FollowButton djId={dj.id} djSlug={dj.slug} />
           </p>
         )}
       </header>

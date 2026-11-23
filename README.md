@@ -23,7 +23,11 @@ Les quotas sont appliqués **dans la base** (trigger `consume_live_allowance`), 
 ## Mise en route
 
 ### 1. Supabase
-SQL Editor, dans cet ordre : `supabase/schema.sql`, `supabase/billing.sql`, puis `supabase/lot1.sql` (adresses de régie, ordre des disques, vendu, replay).
+SQL Editor, dans cet ordre : `supabase/schema.sql`, `supabase/billing.sql`, `supabase/lot1.sql` (adresses de régie, ordre des disques, vendu, replay), puis `supabase/lot2.sql` (admin, suivis, alertes, carte).
+
+Pour te nommer admin : `insert into public.admins (user_id) select id from auth.users where email = 'TON-EMAIL';` puis ouvre `/admin`.
+
+Variables Vercel du lot 2 : `CRON_SECRET`, `RESEND_API_KEY`, `ALERT_FROM_EMAIL` (voir `.env.example`). Le cron quotidien (`vercel.json`, 07:00 UTC) envoie les alertes. Étude Discogs : `docs/discogs-api.md`.
 Authentication > Sign In / Providers : « Allow new users to sign up » activé, « Confirm email » activé.
 Authentication > URL Configuration : Site URL et Redirect URLs = domaine Vercel.
 

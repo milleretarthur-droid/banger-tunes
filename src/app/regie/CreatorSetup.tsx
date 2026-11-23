@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { safeDiscogsUrl } from "@/lib/urls";
+import { geocodeCity } from "@/lib/geocode";
 import { slugify } from "@/lib/slug";
 import type { Dj } from "@/lib/types";
 
@@ -25,6 +26,7 @@ export default function CreatorSetup({ userId, onCreated }: Props) {
     const name = String(form.get("name") ?? "").trim();
     const kind = form.get("kind") === "store" ? "store" : "dj";
     const genre = String(form.get("genre") ?? "").trim() || null;
+    const city = String(form.get("city") ?? "").trim() || null;
     const discogsRaw = String(form.get("discogs_url") ?? "").trim();
     if (discogsRaw && !safeDiscogsUrl(discogsRaw)) {
       setError("Le lien doit être une adresse https://www.discogs.com/…");
@@ -32,12 +34,13 @@ export default function CreatorSetup({ userId, onCreated }: Props) {
     }
 
     setBusy(true);
+    const place = city ? await geocodeCity(city) : null;
     // Le suffixe aléatoire évite les collisions entre deux profils du même nom.
     for (let attempt = 0; attempt < 3; attempt++) {
       const slug = `${slugify(name, "profil")}-${Math.random().toString(36).slice(2, 6)}`;
       const { data, error: err } = await sb
         .from("djs")
-        .insert({ user_id: userId, kind, name, slug, genre, discogs_url: discogsRaw || null })
+        .insert({ user_id: userId, kind, name, slug, genre, city, lat: place?.lat ?? null, lng: place?.lng ?? null, discogs_url: discogsRaw || null })
         .select()
         .single();
       if (!err) {
@@ -78,6 +81,10 @@ export default function CreatorSetup({ userId, onCreated }: Props) {
         <div className="field">
           <label htmlFor="c-genre">Style musical (facultatif)</label>
           <input id="c-genre" name="genre" maxLength={80} placeholder="Disco · Boogie" />
+        </div>
+        <div className="field">
+          <label htmlFor="c-city">Ville (pour apparaître sur la carte, facultatif)</label>
+          <input id="c-city" name="city" maxLength={80} placeholder="Nantes, France" />
         </div>
         <div className="field">
           <label htmlFor="c-discogs">Ta page vendeur Discogs (facultatif)</label>
