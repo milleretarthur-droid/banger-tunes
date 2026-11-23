@@ -3,40 +3,41 @@
 Streaming de DJ en direct (YouTube Live) avec affichage en temps réel du vinyle en cours, en vente sur Discogs.
 
 - **Site** : Next.js, hébergé sur Vercel
-- **Base de données, login DJ et temps réel** : Supabase
-- **Fonctionnement** : le DJ prépare sa tracklist à l'avance, puis clique sur **NEXT** à chaque disque. Les spectateurs voient le changement instantanément.
+- **Base de données, comptes et temps réel** : Supabase
+- **Paiements** : Stripe (Checkout + portail client)
+- **Fonctionnement** : le créateur (DJ ou magasin de vinyles) prépare sa tracklist, puis clique sur **NEXT** à chaque disque. Les spectateurs voient le changement instantanément.
+
+## Modèle économique
+
+Écouter est gratuit, sans compte. Publier un live est payant, mêmes prix pour DJ et magasins :
+
+| Offre | Prix | Lives |
+|---|---|---|
+| Au live | 5 € | 1 (achat de 1 à 10) |
+| Mensuel | 15 €/mois | 5 par période |
+| Annuel | 171 €/an (−5 %) | illimités |
+
+Le **premier live de chaque compte est offert**. Ordre de consommation : annuel > mensuel > live offert > lives achetés.
+Les quotas sont appliqués **dans la base** (trigger `consume_live_allowance`), pas seulement dans l'interface.
 
 ## Mise en route
 
 ### 1. Supabase
+SQL Editor, dans cet ordre : `supabase/schema.sql`, puis `supabase/billing.sql`.
+Authentication > Sign In / Providers : « Allow new users to sign up » activé, « Confirm email » activé.
+Authentication > URL Configuration : Site URL et Redirect URLs = domaine Vercel.
 
-1. Ouvrir le projet Supabase, puis **SQL Editor > New query**.
-2. Coller le contenu de `supabase/schema.sql` et cliquer **Run**. Cela crée les tables, les droits d'accès, le temps réel et quelques données d'exemple.
-3. Récupérer l'URL et la clé `anon public` dans **Project Settings > API**.
+### 2. Stripe
+Créer 3 prix en EUR : 5 € paiement unique ; 15 € récurrent mensuel ; 171 € récurrent annuel.
+Webhook vers `https://<domaine>/api/stripe/webhook` avec les événements :
+`checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+`customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`.
+Configurer le portail client (Settings > Billing > Customer portal).
 
-### 2. Variables d'environnement
-
-En local, copier `.env.example` vers `.env.local` et renseigner les deux valeurs.
-
-Sur Vercel : **Project > Settings > Environment Variables**, ajouter les mêmes deux variables (`NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY`), puis redéployer.
-
-### 3. Créer un compte DJ
-
-Les comptes sont créés à la main (pas d'inscription libre).
-
-1. Supabase > **Authentication > Users > Add user** : email + mot de passe.
-2. Copier l'UUID du compte, puis dans le SQL Editor :
-
-```sql
-update public.djs
-   set user_id = 'UUID-DU-COMPTE'
- where slug = 'theo-manivel';
-```
-
-Le DJ se connecte ensuite sur `/regie`.
+### 3. Variables d'environnement
+Voir `.env.example` (local : `.env.local` ; Vercel : Settings > Environment Variables), puis redéployer.
 
 ### 4. Lancer en local
-
 ```bash
 npm install
 npm run dev
@@ -46,16 +47,20 @@ npm run dev
 
 | Adresse | Rôle |
 |---|---|
-| `/` | Accueil : live en cours, lives à venir et terminés |
+| `/` | Accueil : lives en cours, à venir, terminés |
 | `/live/[id]` | Page publique du live : vidéo + vinyle en cours en temps réel |
-| `/regie` | Espace DJ : créer un live, préparer la tracklist, bouton NEXT |
+| `/tarifs` | Offres et achat |
+| `/connexion` | Connexion / inscription |
+| `/regie` | Espace créateur : profil, offre, lives, tracklist, bouton NEXT |
+| `/api/checkout`, `/api/portal`, `/api/stripe/webhook` | Stripe |
 
 ## Sécurité
 
-- La lecture est publique ; l'écriture est limitée au DJ propriétaire par les règles RLS de Supabase.
-- Les liens saisis par les DJ ne sont affichés que s'ils sont en `https` ; les liens de disques doivent pointer vers `discogs.com`.
+- Lecture publique ; écriture limitée au propriétaire (RLS). Abonnements et crédits : écriture uniquement par le serveur (webhook).
+- Liens en `https` uniquement ; liens de disques sur `discogs.com`.
+- La clé `service_role` n'est utilisée que côté serveur.
 
-## À venir
+## Limites connues
 
-- Accès payant pour les DJ (Stripe), gratuit pour les premiers lives
-- Pages profil DJ
+- Pas de « mot de passe oublié » ; remboursements/litiges Stripe non gérés automatiquement.
+- Un live laissé « en cours » indéfiniment occupe son crédit.

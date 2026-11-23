@@ -1,39 +1,31 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import type { Session } from "@supabase/supabase-js";
+import Link from "next/link";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useSession } from "@/lib/useSession";
 import type { Dj, Live } from "@/lib/types";
+import BillingPanel from "./BillingPanel";
+import CreatorSetup from "./CreatorSetup";
 import LiveControl from "./LiveControl";
 
 export default function RegiePage() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [authReady, setAuthReady] = useState(false);
+  const { session, ready } = useSession();
   const [dj, setDj] = useState<Dj | null>(null);
   const [djLoaded, setDjLoaded] = useState(false);
   const [lives, setLives] = useState<Live[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [needsOffer, setNeedsOffer] = useState(false);
+  const [canPublish, setCanPublish] = useState<boolean | null>(null);
+  const [billingKey, setBillingKey] = useState(0);
 
-  // --- Session ---
+  const userId = session?.user.id ?? null;
+
+  // --- Profil créateur et lives du compte connecté ---
   useEffect(() => {
     const sb = getSupabase();
-    if (!sb) {
-      setAuthReady(true);
-      return;
-    }
-    sb.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setAuthReady(true);
-    });
-    const { data: sub } = sb.auth.onAuthStateChange((_event, s) => setSession(s));
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
-  // --- Profil DJ et lives du compte connecté ---
-  useEffect(() => {
-    const sb = getSupabase();
-    if (!sb || !session) {
+    if (!sb || !userId) {
       setDj(null);
       setDjLoaded(false);
       setLives([]);
@@ -42,11 +34,7 @@ export default function RegiePage() {
     }
     let cancelled = false;
     (async () => {
-      const { data: d } = await sb
-        .from("djs")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
+      const { data: d } = await sb.from("djs").select("*").eq("user_id", userId).maybeSingle();
       if (cancelled) return;
       setDj((d as Dj | null) ?? null);
       setDjLoaded(true);
@@ -62,20 +50,7 @@ export default function RegiePage() {
     return () => {
       cancelled = true;
     };
-  }, [session]);
-
-  async function login(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    const sb = getSupabase();
-    if (!sb) return;
-    const form = new FormData(e.currentTarget);
-    const { error: err } = await sb.auth.signInWithPassword({
-      email: String(form.get("email") ?? ""),
-      password: String(form.get("password") ?? ""),
-    });
-    if (err) setError("Email ou mot de passe incorrect.");
-  }
+  }, [userId]);
 
   async function logout() {
     await getSupabase()?.auth.signOut();
@@ -84,10 +59,13 @@ export default function RegiePage() {
   async function createLive(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setNeedsOffer(false);
     const sb = getSupabase();
     if (!sb || !dj) return;
-    const form = new FormData(e.currentTarget);
+    const formEl = e.currentTarget;
+    const form = new FormData(formEl);
     const when = String(form.get("scheduled_at") ?? "");
+
     const { data, error: err } = await sb
       .from("lives")
       .insert({
@@ -98,13 +76,20 @@ export default function RegiePage() {
       })
       .select()
       .single();
+
     if (err) {
-      setError(`Création impossible : ${err.message}`);
+      if (err.message.includes("NO_ENTITLEMENT")) {
+        setNeedsOffer(true);
+        setError("Tu n'as plus de live disponible. Choisis une offre pour en publier un nouveau.");
+      } else {
+        setError(`Création impossible : ${err.message}`);
+      }
       return;
     }
-    e.currentTarget.reset();
+    formEl.reset();
     setLives((prev) => [data as Live, ...prev]);
     setSelectedId((data as Live).id);
+    setBillingKey((k) => k + 1);
   }
 
   function updateLive(updated: Live) {
@@ -116,7 +101,7 @@ export default function RegiePage() {
   if (!isSupabaseConfigured) {
     return (
       <div className="regie">
-        <h1 className="display">Régie DJ</h1>
+        <h1 className="display">Espace créateur</h1>
         <div className="panel">
           Supabase n&apos;est pas encore connecté (variables d&apos;environnement manquantes).
         </div>
@@ -124,29 +109,23 @@ export default function RegiePage() {
     );
   }
 
-  if (!authReady) return <div className="regie muted">Chargement…</div>;
+  if (!ready) return <div className="regie muted">Chargement…</div>;
 
   if (!session) {
     return (
       <div className="regie">
-        <h1 className="display">Espace DJ</h1>
+        <h1 className="display">Espace créateur</h1>
         <p className="muted" style={{ marginBottom: 24 }}>
-          Les comptes sont créés par l&apos;équipe Live Banger.
+          Écouter les lives est gratuit et sans compte. Pour publier les tiens, connecte-toi ou crée un compte.
         </p>
-        <form className="panel form-grid" onSubmit={login}>
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input id="email" name="email" type="email" autoComplete="email" required />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Mot de passe</label>
-            <input id="password" name="password" type="password" autoComplete="current-password" required />
-          </div>
-          <button className="btn" type="submit">
+        <div className="control-meta">
+          <Link href="/connexion?next=/regie" className="btn">
             Se connecter
-          </button>
-        </form>
-        {error && <p className="error">{error}</p>}
+          </Link>
+          <Link href="/connexion?mode=inscription&next=/regie" className="btn-ghost">
+            Créer un compte
+          </Link>
+        </div>
       </div>
     );
   }
@@ -155,22 +134,23 @@ export default function RegiePage() {
     <div className="regie">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 16 }}>
         <div>
-          <h1 className="display">Régie DJ</h1>
-          {dj && <p className="muted">Connecté en tant que {dj.name}</p>}
+          <h1 className="display">Espace créateur</h1>
+          <p className="muted">
+            {dj ? `${dj.name} · ${dj.kind === "store" ? "Magasin de vinyles" : "DJ"}` : session.user.email}
+          </p>
         </div>
         <button className="btn-ghost" onClick={logout}>
           Se déconnecter
         </button>
       </div>
 
-      {djLoaded && !dj && (
-        <div className="panel" style={{ marginTop: 24 }}>
-          Ton compte n&apos;est pas encore relié à un profil DJ. Contacte l&apos;équipe Live Banger.
-        </div>
-      )}
+      {djLoaded && !dj && <CreatorSetup userId={session.user.id} onCreated={setDj} />}
 
       {dj && (
         <>
+          <h2 className="display">Mon offre</h2>
+          <BillingPanel userId={session.user.id} refreshKey={billingKey} onCanPublish={setCanPublish} />
+
           <h2 className="display">Mes lives</h2>
           {lives.length === 0 ? (
             <p className="muted">Aucun live pour l&apos;instant. Crée le premier ci-dessous.</p>
@@ -202,11 +182,25 @@ export default function RegiePage() {
               <label htmlFor="scheduled_at">Date et heure</label>
               <input id="scheduled_at" name="scheduled_at" type="datetime-local" />
             </div>
-            <button className="btn" type="submit">
+            <button className="btn" type="submit" disabled={canPublish === false}>
               Créer le live
             </button>
           </form>
-          {error && <p className="error">{error}</p>}
+          {canPublish === false && !error && (
+            <p className="error">
+              Aucun live disponible. <Link href="/tarifs" className="link">Choisis une offre</Link> pour en publier un.
+            </p>
+          )}
+          {error && (
+            <p className="error">
+              {error}{" "}
+              {needsOffer && (
+                <Link href="/tarifs" className="link">
+                  Voir les offres
+                </Link>
+              )}
+            </p>
+          )}
 
           {selected && <LiveControl key={selected.id} live={selected} onLiveChange={updateLive} />}
         </>

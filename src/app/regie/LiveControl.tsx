@@ -135,15 +135,19 @@ export default function LiveControl({ live, onLiveChange }: Props) {
             </button>
           )}
           {live.status === "en_cours" && (
-            <button className="btn-ghost" onClick={() => patchLive({ status: "termine" })} disabled={busy}>
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                if (window.confirm("Terminer le live ? C'est définitif : un live terminé ne peut pas être rouvert.")) {
+                  void patchLive({ status: "termine" });
+                }
+              }}
+              disabled={busy}
+            >
               Terminer le live
             </button>
           )}
-          {live.status === "termine" && (
-            <button className="btn-ghost" onClick={() => patchLive({ status: "en_cours" })} disabled={busy}>
-              Rouvrir le live
-            </button>
-          )}
+          {live.status === "termine" && <span className="muted">Live terminé</span>}
         </div>
         {error && <p className="error">{error}</p>}
       </div>
