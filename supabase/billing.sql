@@ -1,5 +1,5 @@
 -- =====================================================================
--- Live Banger — facturation et inscription ouverte
+-- Banger Tunes — facturation et inscription ouverte
 -- À exécuter UNE SEULE FOIS, après supabase/schema.sql.
 -- Supabase > SQL Editor > New query > coller > Run.
 --

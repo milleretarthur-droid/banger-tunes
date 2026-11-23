@@ -1,4 +1,4 @@
-# Live Banger
+# Banger Tunes
 
 Streaming de DJ en direct (YouTube Live) avec affichage en temps réel du vinyle en cours, en vente sur Discogs.
 
@@ -23,7 +23,7 @@ Les quotas sont appliqués **dans la base** (trigger `consume_live_allowance`), 
 ## Mise en route
 
 ### 1. Supabase
-SQL Editor, dans cet ordre : `supabase/schema.sql`, puis `supabase/billing.sql`.
+SQL Editor, dans cet ordre : `supabase/schema.sql`, `supabase/billing.sql`, puis `supabase/lot1.sql` (adresses de régie, ordre des disques, vendu, replay).
 Authentication > Sign In / Providers : « Allow new users to sign up » activé, « Confirm email » activé.
 Authentication > URL Configuration : Site URL et Redirect URLs = domaine Vercel.
 
@@ -51,7 +51,10 @@ npm run dev
 | `/live/[id]` | Page publique du live : vidéo + vinyle en cours en temps réel |
 | `/tarifs` | Offres et achat |
 | `/connexion` | Connexion / inscription |
-| `/regie` | Espace créateur : profil, offre, lives, tracklist, bouton NEXT |
+| `/regie` | Espace créateur : profil, offre, liste des lives, création d'un live |
+| `/regie/[slug]` | Régie d'un live : tracklist (glisser-déposer), NEXT, vendu, réglages |
+| `/regie/[slug]/studio` | Test caméra/micro, branchement du lien YouTube |
+| `/guide` | Tuto de A à Z pour créer un live |
 | `/api/checkout`, `/api/portal`, `/api/stripe/webhook` | Stripe |
 
 ## Sécurité

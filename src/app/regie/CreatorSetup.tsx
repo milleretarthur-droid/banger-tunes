@@ -3,17 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { safeDiscogsUrl } from "@/lib/urls";
+import { slugify } from "@/lib/slug";
 import type { Dj } from "@/lib/types";
-
-function slugify(value: string): string {
-  const base = value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return base || "profil";
-}
 
 type Props = {
   userId: string;
@@ -43,7 +34,7 @@ export default function CreatorSetup({ userId, onCreated }: Props) {
     setBusy(true);
     // Le suffixe aléatoire évite les collisions entre deux profils du même nom.
     for (let attempt = 0; attempt < 3; attempt++) {
-      const slug = `${slugify(name)}-${Math.random().toString(36).slice(2, 6)}`;
+      const slug = `${slugify(name, "profil")}-${Math.random().toString(36).slice(2, 6)}`;
       const { data, error: err } = await sb
         .from("djs")
         .insert({ user_id: userId, kind, name, slug, genre, discogs_url: discogsRaw || null })

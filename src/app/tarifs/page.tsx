@@ -4,7 +4,7 @@ import CheckoutButton from "./CheckoutButton";
 
 export const metadata: Metadata = {
   title: "Tarifs",
-  description: "Publie tes lives sur Live Banger : au live, au mois ou à l'année. Mêmes tarifs pour les DJ et les magasins de vinyles.",
+  description: "Publie tes lives sur Banger Tunes : au live, au mois ou à l'année. Mêmes tarifs pour les DJ et les magasins de vinyles.",
 };
 
 export default function TarifsPage() {

@@ -4,7 +4,7 @@ import NavAuth from "@/components/NavAuth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Live Banger", template: "%s · Live Banger" },
+  title: { default: "Banger Tunes", template: "%s · Banger Tunes" },
   description:
     "Regarde des DJ mixer en direct et repère chaque vinyle qu'ils passent, en vente sur Discogs.",
 };
@@ -27,17 +27,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <nav className="site-nav">
           <Link href="/" className="logo">
-            Live<span>Banger</span>
+            Banger<span>Tunes</span>
           </Link>
           <div className="nav-links">
             <Link href="/#a-venir">Lives</Link>
             <Link href="/tarifs">Tarifs</Link>
+            <Link href="/guide">Guide</Link>
             <NavAuth />
           </div>
         </nav>
         <main>{children}</main>
         <footer className="site-footer">
-          <span>Live Banger</span>
+          <span>Banger Tunes</span>
           <span>Les ventes se font sur Discogs.</span>
         </footer>
       </body>
