@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import NavAuth from "@/components/NavAuth";
 import LangSwitch from "@/components/LangSwitch";
 import { LangProvider } from "@/lib/i18n";
@@ -36,9 +37,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <LangProvider lang={lang}>
         <nav className="site-nav">
-          <Link href="/" className="logo">
-            Banger<span>Tunes</span>
-          </Link>
+          <Logo />
           <div className="nav-links">
             <Link href="/explorer">{lang === "en" ? "Explore" : "Explorer"}</Link>
             <LangSwitch />

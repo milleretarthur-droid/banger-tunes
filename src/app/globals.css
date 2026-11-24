@@ -43,7 +43,8 @@ img { display: block; max-width: 100%; }
   border-bottom: 1px solid var(--line);
 }
 .logo { font-family: "Anton", sans-serif; font-size: 22px; letter-spacing: 0.02em; }
-.logo span { color: var(--red); }
+.logo { display: inline-flex; align-items: center; gap: 10px; }
+.logo-text span { color: var(--red); }
 .nav-links { display: flex; gap: 20px; align-items: center; font-size: 14px; color: var(--paper-dim); }
 .nav-links a:hover { color: var(--paper); }
 .site-footer {
