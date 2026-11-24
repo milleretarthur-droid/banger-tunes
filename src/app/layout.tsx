@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import NavAuth from "@/components/NavAuth";
 import "./globals.css";
 
@@ -26,9 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <nav className="site-nav">
-          <Link href="/" className="logo">
-            Banger<span>Tunes</span>
-          </Link>
+          <Logo />
           <div className="nav-links">
             <Link href="/explorer">Explorer</Link>
             <Link href="/tarifs">Tarifs</Link>
