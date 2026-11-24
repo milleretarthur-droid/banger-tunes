@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { LiveCard } from "@/components/LiveCard";
-import { getLives, getTracks } from "@/lib/data";
+import { getFeaturedLive, getLives, getTracks } from "@/lib/data";
+import { formatDate } from "@/lib/format";
+import { safeImageUrl } from "@/lib/images";
 import { safeDiscogsUrl } from "@/lib/urls";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
@@ -14,8 +16,10 @@ export default async function Home() {
     .sort((a, b) => (a.scheduled_at ?? "9999").localeCompare(b.scheduled_at ?? "9999"));
   const termines = lives.filter((l) => l.status === "termine").slice(0, 8);
 
-  const featured = enCours[0] ?? null;
-  const featuredTrack = featured
+  // Le live mis à la une par l'administration passe en premier, sinon le premier live en direct.
+  const featured = (await getFeaturedLive()) ?? enCours[0] ?? null;
+  const featuredCover = safeImageUrl(featured?.cover_url);
+  const featuredTrack = featured?.status === "en_cours"
     ? ((await getTracks(featured.id)).find((t) => t.position === featured.current_index) ?? null)
     : null;
   const featuredDiscogs = safeDiscogsUrl(featuredTrack?.discogs_url);
@@ -30,21 +34,29 @@ export default async function Home() {
       )}
 
       <section className="hero">
+        {featuredCover && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="hero-cover" src={featuredCover} alt="" />
+        )}
         <div className="hero-grid">
           <div>
             {featured ? (
               <>
                 <div className="live-badge">
-                  <span className="dot" />
-                  En direct maintenant
+                  {featured.status === "en_cours" && <span className="dot" />}
+                  {featured.status === "en_cours"
+                    ? "En direct maintenant"
+                    : featured.status === "a_venir"
+                      ? `À l'affiche · ${formatDate(featured.scheduled_at)}`
+                      : "À réécouter · Replay"}
                 </div>
                 <h1 className="display">{featured.title}</h1>
                 <p className="hero-meta">
                   {featured.dj ? `avec ${featured.dj.name}. ` : ""}
-                  Chaque disque qu&apos;il passe s&apos;affiche à l&apos;écran, en vente sur Discogs.
+                  Chaque disque passé s&apos;affiche à l&apos;écran, en vente sur Discogs.
                 </p>
                 <Link href={`/live/${featured.id}`} className="btn">
-                  Voir le live
+                  {featured.status === "termine" ? "Voir le replay" : "Voir le live"}
                 </Link>
               </>
             ) : (

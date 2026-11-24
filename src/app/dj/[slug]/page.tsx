@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import FollowButton from "@/components/FollowButton";
 import { LiveCard } from "@/components/LiveCard";
 import { getDjBySlug, getLivesOfDj } from "@/lib/data";
+import { safeImageUrl } from "@/lib/images";
 import { safeDiscogsUrl } from "@/lib/urls";
 
 export const dynamic = "force-dynamic";
@@ -28,41 +29,67 @@ export default async function DjPage({ params }: Props) {
   const replays = lives.filter((l) => l.status === "termine");
   const discogs = safeDiscogsUrl(dj.discogs_url);
 
-  return (
-    <div className="section">
-      <p className="panel-label">{dj.kind === "store" ? "Magasin de vinyles" : "DJ"}</p>
-      <h1 className="display" style={{ fontSize: "clamp(36px,6vw,64px)" }}>{dj.name}</h1>
-      <p className="muted" style={{ margin: "8px 0 16px" }}>
-        {[dj.genre, dj.city].filter(Boolean).join(" · ")}
-      </p>
-      {dj.bio && <p style={{ maxWidth: 640, lineHeight: 1.6, marginBottom: 16 }}>{dj.bio}</p>}
-      <div className="control-meta" style={{ marginBottom: 32 }}>
-        <FollowButton djId={dj.id} djSlug={dj.slug} className="btn" />
-        {discogs && (
-          <a className="btn-ghost" href={discogs} target="_blank" rel="noopener noreferrer">
-            Boutique Discogs ↗
-          </a>
-        )}
-      </div>
+  const photo = safeImageUrl(dj.photo_url);
 
-      {enCours.length > 0 && (
-        <>
-          <h2 className="display">En direct</h2>
-          <div className="grid" style={{ marginBottom: 32 }}>{enCours.map((l) => <LiveCard key={l.id} live={l} />)}</div>
-        </>
-      )}
-      <h2 className="display">À venir</h2>
-      {aVenir.length > 0 ? (
-        <div className="grid" style={{ marginBottom: 32 }}>{aVenir.map((l) => <LiveCard key={l.id} live={l} />)}</div>
-      ) : (
-        <p className="empty" style={{ marginBottom: 32 }}>Aucun live programmé. Suis ce profil pour être prévenu.</p>
-      )}
-      {replays.length > 0 && (
-        <>
-          <h2 className="display">Replays</h2>
-          <div className="grid">{replays.map((l) => <LiveCard key={l.id} live={l} />)}</div>
-        </>
-      )}
+  return (
+    <div className="section dj-page">
+      <div className="dj-layout">
+        <div className="dj-main">
+          <p className="panel-label">{dj.kind === "store" ? "Magasin de vinyles" : "DJ"}</p>
+          <h1 className="display" style={{ fontSize: "clamp(36px,6vw,64px)" }}>{dj.name}</h1>
+          <p className="muted" style={{ margin: "8px 0 16px" }}>
+            {[dj.genre, dj.city].filter(Boolean).join(" · ")}
+          </p>
+          <div className="control-meta" style={{ marginBottom: 12 }}>
+            <FollowButton djId={dj.id} djSlug={dj.slug} className="btn" />
+            {discogs && (
+              <a className="btn-ghost" href={discogs} target="_blank" rel="noopener noreferrer">
+                Boutique Discogs ↗
+              </a>
+            )}
+          </div>
+
+          {enCours.length > 0 && (
+            <section className="dj-section">
+              <h2 className="display">En direct</h2>
+              <div className="grid">{enCours.map((l) => <LiveCard key={l.id} live={l} />)}</div>
+            </section>
+          )}
+
+          <section className="dj-section">
+            <h2 className="display">À venir</h2>
+            {aVenir.length > 0 ? (
+              <div className="grid">{aVenir.map((l) => <LiveCard key={l.id} live={l} />)}</div>
+            ) : (
+              <p className="empty">Aucun live programmé. Suis ce profil pour être prévenu.</p>
+            )}
+          </section>
+
+          <section className="dj-section">
+            <h2 className="display">Replays</h2>
+            {replays.length > 0 ? (
+              <div className="grid">{replays.map((l) => <LiveCard key={l.id} live={l} />)}</div>
+            ) : (
+              <p className="empty">Les lives terminés apparaîtront ici, à réécouter avec leur tracklist.</p>
+            )}
+          </section>
+        </div>
+
+        <aside className="dj-aside" aria-label="Présentation">
+          <div className="about-card">
+            {photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="about-photo" src={photo} alt={`Visuel de ${dj.name}`} />
+            ) : (
+              <span className="about-initial" aria-hidden>{dj.name.slice(0, 1).toUpperCase()}</span>
+            )}
+            <div className="about-text">
+              <h2 className="about-title">À propos</h2>
+              <p>{dj.bio ?? "Ce profil n'a pas encore de présentation."}</p>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { safeDiscogsUrl } from "@/lib/urls";
-import { geocodeCity } from "@/lib/geocode";
+import CityPicker, { type CityValue } from "@/components/CityPicker";
 import { slugify } from "@/lib/slug";
 import type { Dj } from "@/lib/types";
 
@@ -15,6 +15,7 @@ type Props = {
 export default function CreatorSetup({ userId, onCreated }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const cityRef = useRef<{ value: CityValue; typed: string }>({ value: null, typed: "" });
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -26,21 +27,25 @@ export default function CreatorSetup({ userId, onCreated }: Props) {
     const name = String(form.get("name") ?? "").trim();
     const kind = form.get("kind") === "store" ? "store" : "dj";
     const genre = String(form.get("genre") ?? "").trim() || null;
-    const city = String(form.get("city") ?? "").trim() || null;
+    const { value: place, typed } = cityRef.current;
     const discogsRaw = String(form.get("discogs_url") ?? "").trim();
     if (discogsRaw && !safeDiscogsUrl(discogsRaw)) {
       setError("Le lien doit être une adresse https://www.discogs.com/…");
       return;
     }
 
+    if (typed.trim() && !place) {
+      setError("Choisis ta ville dans la liste déroulante (ou vide le champ).");
+      return;
+    }
+
     setBusy(true);
-    const place = city ? await geocodeCity(city) : null;
     // Le suffixe aléatoire évite les collisions entre deux profils du même nom.
     for (let attempt = 0; attempt < 3; attempt++) {
       const slug = `${slugify(name, "profil")}-${Math.random().toString(36).slice(2, 6)}`;
       const { data, error: err } = await sb
         .from("djs")
-        .insert({ user_id: userId, kind, name, slug, genre, city, lat: place?.lat ?? null, lng: place?.lng ?? null, discogs_url: discogsRaw || null })
+        .insert({ user_id: userId, kind, name, slug, genre, city: place?.city ?? null, lat: place?.lat ?? null, lng: place?.lng ?? null, discogs_url: discogsRaw || null })
         .select()
         .single();
       if (!err) {
@@ -84,7 +89,7 @@ export default function CreatorSetup({ userId, onCreated }: Props) {
         </div>
         <div className="field">
           <label htmlFor="c-city">Ville (pour apparaître sur la carte, facultatif)</label>
-          <input id="c-city" name="city" maxLength={80} placeholder="Nantes, France" />
+          <CityPicker id="c-city" onChange={(value, typed) => { cityRef.current = { value, typed }; }} />
         </div>
         <div className="field">
           <label htmlFor="c-discogs">Ta page vendeur Discogs (facultatif)</label>
