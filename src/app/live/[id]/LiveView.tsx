@@ -65,15 +65,17 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
     return () => clearInterval(timer);
   }, [connected, refresh]);
 
-  const current = tracks.find((t) => t.position === live.current_index) ?? null;
+  // Live terminé : plus de disque « en cours », toute la tracklist passe dans la liste du replay.
+  const current = live.status === "termine" ? null : (tracks.find((t) => t.position === live.current_index) ?? null);
   const currentRank = current ? tracks.findIndex((t) => t.id === current.id) + 1 : 0;
 
-  // Seuls les disques déjà passés sont visibles (le live terminé montre tout).
+  // Seuls les disques déjà passés sont listés : le disque en cours n'apparaît que dans sa carte,
+  // et rejoint la liste dès que le DJ passe au suivant (le live terminé montre tout).
   const played = useMemo(() => {
     const list =
       live.status === "termine"
         ? tracks
-        : tracks.filter((t) => live.current_index > 0 && t.position <= live.current_index);
+        : tracks.filter((t) => live.current_index > 0 && t.position < live.current_index);
     // Live terminé : ordre chronologique pour suivre le replay ; sinon le dernier disque en premier.
     return live.status === "termine" ? list : [...list].reverse();
   }, [tracks, live.status, live.current_index]);
@@ -152,14 +154,18 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
                   <h2 className="now-title">{current.title}</h2>
                   <p className="now-artist">{current.artist}</p>
                   {price && <p className="now-price">{price}</p>}
-                  {current.sold && <span className="sold-tag">Vendu</span>}
+                  {current.sold ? (
+                    <span className="sold-tag">Vendu</span>
+                  ) : discogs ? (
+                    <span className="avail-tag">Disponible</span>
+                  ) : null}
                 </div>
               </div>
               {current.sold ? (
                 <p className="muted">Ce disque est vendu.</p>
               ) : discogs ? (
                 <a
-                  className="btn btn-gold btn-block"
+                  className="btn btn-block"
                   href={discogs}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -191,6 +197,11 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
               const link = safeDiscogsUrl(t.discogs_url);
               const p = formatPrice(t.price);
               const offset = isReplay && embed ? replayOffsetFor(t) : null;
+              const status = t.sold ? (
+                <span className="sold-tag">Vendu</span>
+              ) : link ? (
+                <span className="avail-tag">Disponible</span>
+              ) : null;
               return (
                 <div key={t.id} className={`track-row${t.id === current?.id ? " is-current" : ""}${t.sold ? " is-sold" : ""}`}>
                   <span className="track-pos">{t.position}</span>
@@ -204,8 +215,11 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
                         </button>
                       )}
                     </div>
+                    {status && <div className="track-status-m">{status}</div>}
                   </div>
-                  <span className="track-price">{t.sold ? <span className="sold-tag">Vendu</span> : p}</span>
+                  <span className="track-price">
+                    {status} {!t.sold && p}
+                  </span>
                   {link && !t.sold ? (
                     <a className="track-link" href={link} target="_blank" rel="noopener noreferrer">
                       Discogs →
