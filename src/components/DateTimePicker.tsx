@@ -1,5 +1,7 @@
 "use client";
 
+import { useLang } from "@/lib/i18n";
+import { makeT } from "@/lib/lang";
 import { useMemo, useState } from "react";
 
 type Props = {
@@ -8,8 +10,7 @@ type Props = {
   id?: string;
 };
 
-const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-const WEEKDAYS = ["L", "M", "M", "J", "V", "S", "D"];
+const WEEKDAYS = { fr: ["L", "M", "M", "J", "V", "S", "D"], en: ["M", "T", "W", "T", "F", "S", "S"] };
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = [0, 15, 30, 45];
 
@@ -18,15 +19,12 @@ const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDat
 const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
-const summaryFmt = new Intl.DateTimeFormat("fr-FR", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 export default function DateTimePicker({ onChange, id }: Props) {
+  const lang = useLang();
+  const t = makeT(lang);
+  const loc = lang === "en" ? "en-GB" : "fr-FR";
+  const summaryFmt = new Intl.DateTimeFormat(loc, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
   const today = useMemo(() => startOfDay(new Date()), []);
   const [day, setDay] = useState<Date | null>(null);
   const [hour, setHour] = useState(21);
@@ -92,7 +90,7 @@ export default function DateTimePicker({ onChange, id }: Props) {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
-        <span>{composed ? summaryFmt.format(composed) : "Choisir une date et une heure"}</span>
+        <span>{composed ? summaryFmt.format(composed) : t("Choisir une date et une heure", "Choose a date and time")}</span>
         <span aria-hidden>{open ? "▴" : "▾"}</span>
       </button>
 
@@ -100,20 +98,20 @@ export default function DateTimePicker({ onChange, id }: Props) {
         <div className="dtp-pop">
           <div className="dtp-quick">
             <button type="button" className="chip" onClick={() => setAll(new Date(now.getTime() + 60 * 60 * 1000), new Date(now.getTime() + 60 * 60 * 1000).getHours(), 0)}>
-              Dans 1 h
+              {t("Dans 1 h", "In 1 hour")}
             </button>
             <button type="button" className="chip" disabled={tonight < now} onClick={() => setAll(tonight, 21, 0)}>
-              Ce soir 21 h
+              {t("Ce soir 21 h", "Tonight 9 pm")}
             </button>
             <button type="button" className="chip" onClick={() => setAll(tomorrow, 21, 0)}>
-              Demain 21 h
+              {t("Demain 21 h", "Tomorrow 9 pm")}
             </button>
             <button type="button" className="chip" onClick={() => setAll(saturday, 21, 0)}>
-              Samedi 21 h
+              {t("Samedi 21 h", "Saturday 9 pm")}
             </button>
             {composed && (
               <button type="button" className="chip chip-clear" onClick={clear}>
-                Effacer
+                {t("Effacer", "Clear")}
               </button>
             )}
           </div>
@@ -125,24 +123,24 @@ export default function DateTimePicker({ onChange, id }: Props) {
                 className="dtp-nav"
                 onClick={() => setMonth(new Date(first.getFullYear(), first.getMonth() - 1, 1))}
                 disabled={!canGoPrev}
-                aria-label="Mois précédent"
+                aria-label={t("Mois précédent", "Previous month")}
               >
                 ‹
               </button>
               <strong>
-                {MONTHS[first.getMonth()]} {first.getFullYear()}
+                {new Intl.DateTimeFormat(loc, { month: "long" }).format(first)} {first.getFullYear()}
               </strong>
               <button
                 type="button"
                 className="dtp-nav"
                 onClick={() => setMonth(new Date(first.getFullYear(), first.getMonth() + 1, 1))}
-                aria-label="Mois suivant"
+                aria-label={t("Mois suivant", "Next month")}
               >
                 ›
               </button>
             </div>
             <div className="dtp-grid">
-              {WEEKDAYS.map((w, i) => (
+              {WEEKDAYS[lang].map((w, i) => (
                 <span key={i} className="dtp-wd">
                   {w}
                 </span>
@@ -155,7 +153,7 @@ export default function DateTimePicker({ onChange, id }: Props) {
                     className={`dtp-day${day && sameDay(d, day) ? " is-selected" : ""}${sameDay(d, today) ? " is-today" : ""}`}
                     disabled={d < today}
                     onClick={() => pickDay(d)}
-                    aria-label={d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+                    aria-label={d.toLocaleDateString(loc, { weekday: "long", day: "numeric", month: "long" })}
                   >
                     {d.getDate()}
                   </button>
@@ -167,7 +165,7 @@ export default function DateTimePicker({ onChange, id }: Props) {
           </div>
 
           <div className="dtp-time">
-            <p className="dtp-label">Heure</p>
+            <p className="dtp-label">{t("Heure", "Hour")}</p>
             <div className="dtp-hours">
               {HOURS.map((h) => (
                 <button key={h} type="button" className={`chip${h === hour ? " is-selected" : ""}`} onClick={() => pickHour(h)}>
@@ -175,7 +173,7 @@ export default function DateTimePicker({ onChange, id }: Props) {
                 </button>
               ))}
             </div>
-            <p className="dtp-label">Minutes</p>
+            <p className="dtp-label">{t("Minutes", "Minutes")}</p>
             <div className="dtp-minutes">
               {MINUTES.map((m) => (
                 <button key={m} type="button" className={`chip${m === minute ? " is-selected" : ""}`} onClick={() => pickMinute(m)}>
@@ -185,9 +183,9 @@ export default function DateTimePicker({ onChange, id }: Props) {
             </div>
           </div>
 
-          {isPast && <p className="dtp-warn">Cette date est déjà passée.</p>}
+          {isPast && <p className="dtp-warn">{t("Cette date est déjà passée.", "This date has already passed.")}</p>}
           <button type="button" className="btn-ghost dtp-done" onClick={() => setOpen(false)}>
-            Valider
+            {t("Valider", "Done")}
           </button>
         </div>
       )}

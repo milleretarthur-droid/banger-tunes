@@ -11,13 +11,19 @@ import { youtubeEmbedUrl } from "@/lib/youtube";
 import type { Live } from "@/lib/types";
 import LiveControl from "../LiveControl";
 import { useOwnedLive } from "../useOwnedLive";
+import { useLang, useT } from "@/lib/i18n";
 
 type Props = { params: Promise<{ slug: string }> };
 
-const STATUS_LABEL = { a_venir: "À venir", en_cours: "En direct", termine: "Terminé" } as const;
+const STATUS_LABEL = {
+  fr: { a_venir: "À venir", en_cours: "En direct", termine: "Terminé" },
+  en: { a_venir: "Coming up", en_cours: "Live", termine: "Ended" },
+} as const;
 
 export default function RegieLivePage({ params }: Props) {
   const { slug } = use(params);
+  const lang = useLang();
+  const t = useT();
   const { session, ready, live, setLive, dj, state } = useOwnedLive(slug);
   const [when, setWhen] = useState<Date | null | undefined>(undefined);
   const [cover, setCover] = useState<string | null | undefined>(undefined);
@@ -31,7 +37,7 @@ export default function RegieLivePage({ params }: Props) {
     const form = new FormData(e.currentTarget);
     const youtube = String(form.get("youtube_url") ?? "").trim();
     if (youtube && !youtubeEmbedUrl(youtube)) {
-      setMsg({ ok: false, text: "Ce lien YouTube n'est pas reconnu (youtube.com/watch…, youtube.com/live/… ou youtu.be/…)." });
+      setMsg({ ok: false, text: t("Ce lien YouTube n'est pas reconnu (youtube.com/watch…, youtube.com/live/… ou youtu.be/…).", "This YouTube link is not recognised (youtube.com/watch…, youtube.com/live/… or youtu.be/…).") });
       return;
     }
     const offset = Number(String(form.get("replay_offset") ?? "0")) || 0;
@@ -44,87 +50,86 @@ export default function RegieLivePage({ params }: Props) {
     if (when !== undefined) patch.scheduled_at = when ? when.toISOString() : null;
 
     const { data, error } = await sb.from("lives").update(patch).eq("id", live.id).select().single();
-    if (error) return setMsg({ ok: false, text: `Enregistrement impossible : ${error.message}` });
+    if (error) return setMsg({ ok: false, text: `${t("Enregistrement impossible", "Could not save")} : ${error.message}` });
     if (cover !== undefined && cover !== live.cover_url) void removeOldImage(sb, live.cover_url);
     setLive(data as Live);
     setWhen(undefined);
     setCover(undefined);
-    setMsg({ ok: true, text: "Modifications enregistrées." });
+    setMsg({ ok: true, text: t("Modifications enregistrées.", "Changes saved.") });
   }
 
-  if (!isSupabaseConfigured) return <div className="regie muted">Supabase n&apos;est pas connecté.</div>;
-  if (!ready) return <div className="regie muted">Chargement…</div>;
+  if (!isSupabaseConfigured) return <div className="regie muted">{t("Supabase n'est pas connecté.", "Supabase is not connected.")}</div>;
+  if (!ready) return <div className="regie muted">{t("Chargement…", "Loading…")}</div>;
   if (!session) {
     return (
       <div className="regie">
-        <h1 className="display">Régie</h1>
-        <p className="muted" style={{ marginBottom: 20 }}>Connecte-toi pour piloter ton live.</p>
-        <Link href={`/connexion?next=/regie/${slug}`} className="btn">Se connecter</Link>
+        <h1 className="display">{t("Régie", "Control room")}</h1>
+        <p className="muted" style={{ marginBottom: 20 }}>{t("Connecte-toi pour piloter ton live.", "Log in to run your live.")}</p>
+        <Link href={`/connexion?next=/regie/${slug}`} className="btn">{t("Se connecter", "Log in")}</Link>
       </div>
     );
   }
-  if (state === "loading") return <div className="regie muted">Chargement…</div>;
+  if (state === "loading") return <div className="regie muted">{t("Chargement…", "Loading…")}</div>;
   if (state === "missing" || state === "forbidden" || !live || !dj) {
     return (
       <div className="regie">
-        <h1 className="display">Live introuvable</h1>
+        <h1 className="display">{t("Live introuvable", "Live not found")}</h1>
         <p className="muted" style={{ marginBottom: 20 }}>
-          {state === "forbidden" ? "Ce live n'appartient pas à ton compte." : "Cette adresse ne correspond à aucun live."}
+          {state === "forbidden" ? t("Ce live n'appartient pas à ton compte.", "This live does not belong to your account.") : t("Cette adresse ne correspond à aucun live.", "This address does not match any live.")}
         </p>
-        <Link href="/regie" className="btn-ghost">← Mes lives</Link>
+        <Link href="/regie" className="btn-ghost">← {t("Mes lives", "My lives")}</Link>
       </div>
     );
   }
 
   return (
     <div className="regie">
-      <Link href="/regie" className="link">← Mes lives</Link>
+      <Link href="/regie" className="link">← {t("Mes lives", "My lives")}</Link>
       <div className="regie-head">
         <div>
           <h1 className="display">{live.title}</h1>
           <p className="muted">
-            <span className={`status-tag status-${live.status}`}>{STATUS_LABEL[live.status]}</span>{" "}
-            {live.scheduled_at ? formatDate(live.scheduled_at) : "Date à définir"}
+            <span className={`status-tag status-${live.status}`}>{STATUS_LABEL[lang][live.status]}</span>{" "}
+            {live.scheduled_at ? formatDate(live.scheduled_at, lang) : t("Date à définir", "Date to be set")}
           </p>
         </div>
         <div className="control-meta">
-          <Link href={`/regie/${live.slug}/studio`} className="btn">Lancer mon live</Link>
-          <Link href={`/live/${live.id}`} className="btn-ghost" target="_blank">Page publique ↗</Link>
+          <Link href={`/regie/${live.slug}/studio`} className="btn">{t("Lancer mon live", "Start my live")}</Link>
+          <Link href={`/live/${live.id}`} className="btn-ghost" target="_blank">{t("Page publique", "Public page")} ↗</Link>
         </div>
       </div>
 
       <LiveControl live={live} onLiveChange={setLive} />
 
-      <h2 className="display">Réglages du live</h2>
+      <h2 className="display">{t("Réglages du live", "Live settings")}</h2>
       <form className="panel form-grid" onSubmit={save} key={live.id + live.title}>
         <div className="field">
-          <label htmlFor="e-title">Titre</label>
+          <label htmlFor="e-title">{t("Titre", "Title")}</label>
           <input id="e-title" name="title" required maxLength={120} defaultValue={live.title} />
         </div>
         <div className="field">
-          <label htmlFor="e-yt">Lien YouTube (live ou replay)</label>
+          <label htmlFor="e-yt">{t("Lien YouTube (live ou replay)", "YouTube link (live or replay)")}</label>
           <input id="e-yt" name="youtube_url" type="url" defaultValue={live.youtube_url ?? ""} placeholder="https://www.youtube.com/live/…" />
         </div>
         <div className="field field-wide">
-          <label htmlFor="e-when">Date et heure {live.scheduled_at && `(actuelle : ${formatDate(live.scheduled_at)})`}</label>
+          <label htmlFor="e-when">{t("Date et heure", "Date and time")} {live.scheduled_at && `(${t("actuelle", "current")} : ${formatDate(live.scheduled_at, lang)})`}</label>
           <DateTimePicker id="e-when" onChange={setWhen} />
         </div>
         <ImageUpload
           userId={session.user.id}
           kind="cover"
-          label="Cover du live"
-          hint="Affichée sur les cartes du site et en grand sur l'accueil si ton live est mis à la une."
+          label={t("Cover du live", "Live cover")}
+          hint={t("Affichée sur les cartes du site et en grand sur l'accueil si ton live est mis à la une.", "Shown on the site's cards and large on the home page if your live is featured.")}
           value={cover === undefined ? live.cover_url : cover}
           onChange={setCover}
         />
         <div className="field">
-          <label htmlFor="e-offset">Décalage du replay (secondes)</label>
+          <label htmlFor="e-offset">{t("Décalage du replay (secondes)", "Replay offset (seconds)")}</label>
           <input id="e-offset" name="replay_offset" type="number" step="1" defaultValue={live.replay_offset} />
         </div>
-        <button className="btn" type="submit">Enregistrer</button>
+        <button className="btn" type="submit">{t("Enregistrer", "Save")}</button>
         <p className="hint field-wide">
-          Décalage du replay : si la vidéo YouTube démarre 30 s avant ton clic « Démarrer le live », mets 30.
-          Chaque disque du replay sera calé sur le bon moment de la vidéo.
+          {t("Décalage du replay : si la vidéo YouTube démarre 30 s avant ton clic « Démarrer le live », mets 30. Chaque disque du replay sera calé sur le bon moment de la vidéo.", "Replay offset: if the YouTube video starts 30 s before you click “Start the live”, enter 30. Each record in the replay will be synced to the right moment of the video.")}
         </p>
         {msg && <p className={msg.ok ? "info" : "error"}>{msg.text}</p>}
       </form>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { getSupabase } from "@/lib/supabase";
+import { useT } from "@/lib/i18n";
 
 type Props = { djId: string; djSlug?: string; djName?: string; className?: string; label?: string };
 
@@ -9,7 +10,8 @@ type Props = { djId: string; djSlug?: string; djName?: string; className?: strin
  * « Être prévenu » : fenêtre contextuelle où l'on saisit son email, sans créer de compte.
  * Un lien de confirmation est envoyé par email ; chaque alerte contient un lien de désinscription.
  */
-export default function FollowButton({ djId, djName, className = "btn-ghost", label = "🔔 Être prévenu" }: Props) {
+export default function FollowButton({ djId, djName, className = "btn-ghost", label }: Props) {
+  const t = useT();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -45,10 +47,10 @@ export default function FollowButton({ djId, djName, className = "btn-ghost", la
         body: JSON.stringify({ djId, email, website }),
       });
       const json = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(json.error ?? "Inscription impossible pour le moment.");
+      if (!res.ok) throw new Error(json.error ?? t("Inscription impossible pour le moment.", "Sign-up is not possible right now."));
       setDone(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Inscription impossible pour le moment.");
+      setError(err instanceof Error ? err.message : t("Inscription impossible pour le moment.", "Sign-up is not possible right now."));
     } finally {
       setBusy(false);
     }
@@ -63,34 +65,34 @@ export default function FollowButton({ djId, djName, className = "btn-ghost", la
   return (
     <>
       <button type="button" className={className} onClick={() => setOpen(true)}>
-        {label}
+        {label ?? t("🔔 Être prévenu", "🔔 Get notified")}
       </button>
       <dialog ref={dialogRef} className="modal" onClose={close} onClick={(e) => e.target === dialogRef.current && close()}>
         <div className="modal-body">
           {done ? (
             <>
-              <h2 className="display">Vérifie ta boîte mail</h2>
+              <h2 className="display">{t("Vérifie ta boîte mail", "Check your inbox")}</h2>
               <p className="muted" style={{ margin: "12px 0 20px" }}>
-                On t&apos;a envoyé un lien de confirmation à <strong>{email}</strong>. Clique dessus pour activer les alertes (pense à regarder dans les courriers indésirables).
+                {t("On t'a envoyé un lien de confirmation à", "We have sent a confirmation link to")} <strong>{email}</strong>. {t("Clique dessus pour activer les alertes (pense à regarder dans les courriers indésirables).", "Click it to activate alerts (check your spam folder too).")}
               </p>
-              <button type="button" className="btn" onClick={close}>Fermer</button>
+              <button type="button" className="btn" onClick={close}>{t("Fermer", "Close")}</button>
             </>
           ) : (
             <form onSubmit={submit} className="form-stack">
-              <h2 className="display">Être prévenu</h2>
+              <h2 className="display">{t("Être prévenu", "Get notified")}</h2>
               <p className="muted">
-                Reçois un email quand {djName ? <strong>{djName}</strong> : "ce créateur"} va passer en live. Pas de compte à créer.
+                {t("Reçois un email quand", "Get an email when")} {djName ? <strong>{djName}</strong> : t("ce créateur", "this creator")} {t("va passer en live. Pas de compte à créer.", "goes live. No account needed.")}
               </p>
               <div className="field">
-                <label htmlFor={`sub-${djId}`}>Ton email</label>
-                <input id={`sub-${djId}`} type="email" required maxLength={254} autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="toi@exemple.fr" />
+                <label htmlFor={`sub-${djId}`}>{t("Ton email", "Your email")}</label>
+                <input id={`sub-${djId}`} type="email" required maxLength={254} autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("toi@exemple.fr", "you@example.com")} />
               </div>
               {/* Champ piège pour les robots : invisible pour les humains. */}
               <input name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hp" />
-              <p className="hint">Ton adresse sert uniquement à t&apos;envoyer ces alertes. Désinscription en un clic dans chaque email.</p>
+              <p className="hint">{t("Ton adresse sert uniquement à t'envoyer ces alertes. Désinscription en un clic dans chaque email.", "Your address is only used to send you these alerts. Unsubscribe in one click from every email.")}</p>
               <div className="control-meta">
-                <button className="btn" type="submit" disabled={busy}>{busy ? "Envoi…" : "Me prévenir"}</button>
-                <button type="button" className="btn-ghost" onClick={close}>Annuler</button>
+                <button className="btn" type="submit" disabled={busy}>{busy ? t("Envoi…", "Sending…") : t("Me prévenir", "Notify me")}</button>
+                <button type="button" className="btn-ghost" onClick={close}>{t("Annuler", "Cancel")}</button>
               </div>
               {error && <p className="error">{error}</p>}
             </form>

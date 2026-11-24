@@ -607,3 +607,16 @@ img { display: block; max-width: 100%; }
 .advanced { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; font-size: 14px; line-height: 1.5; }
 .advanced summary { cursor: pointer; color: var(--paper-dim); margin-bottom: 8px; }
 .advanced p { margin-bottom: 10px; }
+
+/* Sélecteur de langue */
+.lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.lang-switch button { background: none; border: 0; color: inherit; font: inherit; font-size: 12px; font-weight: 600; padding: 5px 9px; cursor: pointer; opacity: .6; }
+.lang-switch button.on { background: #f2ede3; color: #0e0e0c; opacity: 1; }
+
+/* Encart Explorer de l'accueil */
+.explore-promo { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 32px; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(135deg, #17160f, #1f1a12); }
+.explore-promo h2 { margin: 0 0 8px; }
+.explore-promo p { margin: 0; max-width: 520px; }
+
+/* Icône caddie */
+.cart-ico { width: 1.1em; height: 1.1em; vertical-align: -0.18em; flex: none; }

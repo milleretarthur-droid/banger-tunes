@@ -6,8 +6,11 @@ import FollowButton from "@/components/FollowButton";
 import { getSupabase } from "@/lib/supabase";
 import type { Dj, Live, Track } from "@/lib/types";
 import { youtubeEmbedUrl } from "@/lib/youtube";
-import { safeDiscogsUrl, safeHttpsUrl } from "@/lib/urls";
+import { safeHttpsUrl } from "@/lib/urls";
 import { formatDate, formatPrice } from "@/lib/format";
+import CartIcon from "@/components/CartIcon";
+import { useLang } from "@/lib/i18n";
+import { makeT } from "@/lib/lang";
 
 type Props = {
   initialLive: Live;
@@ -16,6 +19,8 @@ type Props = {
 };
 
 export default function LiveView({ initialLive, dj, initialTracks }: Props) {
+  const lang = useLang();
+  const t = makeT(lang);
   const [live, setLive] = useState<Live>(initialLive);
   const [tracks, setTracks] = useState<Track[]>(initialTracks);
   const [connected, setConnected] = useState(false);
@@ -25,12 +30,12 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
   const refresh = useCallback(async () => {
     const sb = getSupabase();
     if (!sb) return;
-    const [l, t] = await Promise.all([
+    const [l, tr] = await Promise.all([
       sb.from("lives").select("*").eq("id", liveId).single(),
       sb.from("tracklist").select("*").eq("live_id", liveId).order("position"),
     ]);
     if (l.data) setLive(l.data as Live);
-    if (t.data) setTracks(t.data as Track[]);
+    if (tr.data) setTracks(tr.data as Track[]);
   }, [liveId]);
 
   // Temps réel : le clic "Next" du DJ arrive ici instantanément.
@@ -66,8 +71,8 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
   }, [connected, refresh]);
 
   // Live terminé : plus de disque « en cours », toute la tracklist passe dans la liste du replay.
-  const current = live.status === "termine" ? null : (tracks.find((t) => t.position === live.current_index) ?? null);
-  const currentRank = current ? tracks.findIndex((t) => t.id === current.id) + 1 : 0;
+  const current = live.status === "termine" ? null : (tracks.find((x) => x.position === live.current_index) ?? null);
+  const currentRank = current ? tracks.findIndex((x) => x.id === current.id) + 1 : 0;
 
   // Seuls les disques déjà passés sont listés : le disque en cours n'apparaît que dans sa carte,
   // et rejoint la liste dès que le DJ passe au suivant (le live terminé montre tout).
@@ -75,7 +80,7 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
     const list =
       live.status === "termine"
         ? tracks
-        : tracks.filter((t) => live.current_index > 0 && t.position < live.current_index);
+        : tracks.filter((x) => live.current_index > 0 && x.position < live.current_index);
     // Live terminé : ordre chronologique pour suivre le replay ; sinon le dernier disque en premier.
     return live.status === "termine" ? list : [...list].reverse();
   }, [tracks, live.status, live.current_index]);
@@ -87,14 +92,14 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
   );
 
   // Moment de la vidéo où un disque a été lancé (heure de passage − heure de démarrage + décalage).
-  function replayOffsetFor(t: Track): number | null {
-    if (!t.played_at || !live.started_at) return null;
-    const secs = (new Date(t.played_at).getTime() - new Date(live.started_at).getTime()) / 1000 + (live.replay_offset ?? 0);
+  function replayOffsetFor(tr: Track): number | null {
+    if (!tr.played_at || !live.started_at) return null;
+    const secs = (new Date(tr.played_at).getTime() - new Date(live.started_at).getTime()) / 1000 + (live.replay_offset ?? 0);
     return Number.isFinite(secs) ? Math.max(0, Math.round(secs) - 5) : null;
   }
-  const discogs = safeDiscogsUrl(current?.discogs_url);
+  const discogs = safeHttpsUrl(current?.discogs_url);
   const cover = safeHttpsUrl(current?.cover_url);
-  const price = formatPrice(current?.price);
+  const price = formatPrice(current?.price, lang);
 
   return (
     <>
@@ -102,17 +107,17 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
         {live.status === "en_cours" && (
           <div className="live-badge">
             <span className="dot" />
-            En direct
+            {t("En direct", "Live")}
           </div>
         )}
         {live.status === "a_venir" && (
-          <span className="status-pill">À venir · {formatDate(live.scheduled_at)}</span>
+          <span className="status-pill">{t("À venir", "Coming up")} · {formatDate(live.scheduled_at, lang)}</span>
         )}
         {live.status === "termine" && <span className="status-pill">Replay</span>}
         <h1 className="display live-title">{live.title}</h1>
         {dj && (
           <p className="live-dj">
-            avec{" "}
+            {t("avec", "with")}{" "}
             <Link href={`/dj/${dj.slug}`}>
               <strong>{dj.name}</strong>
             </Link>
@@ -129,12 +134,12 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
             <iframe
               key={replayStart ?? "live"}
               src={embed}
-              title={`Lecteur YouTube — ${live.title}`}
+              title={`${t("Lecteur YouTube", "YouTube player")} — ${live.title}`}
               allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen"
               allowFullScreen
             />
           ) : (
-            <div className="player-empty">La vidéo sera disponible au démarrage du live.</div>
+            <div className="player-empty">{t("La vidéo sera disponible au démarrage du live.", "The video will be available when the live starts.")}</div>
           )}
         </div>
 
@@ -142,11 +147,11 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
           {current ? (
             <>
               <p className="panel-label">
-                En cours · disque {currentRank}/{tracks.length}
+                {t("En cours", "Now playing")} · {t("disque", "record")} {currentRank}/{tracks.length}
               </p>
               <div className="now-body">
                 {cover ? (
-                  <img className="now-cover" src={cover} alt={`Pochette de ${current.title}`} />
+                  <img className="now-cover" src={cover} alt={`${t("Pochette de", "Cover of")} ${current.title}`} />
                 ) : (
                   <div className="vinyl-disc" aria-hidden />
                 )}
@@ -155,34 +160,37 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
                   <p className="now-artist">{current.artist}</p>
                   {price && <p className="now-price">{price}</p>}
                   {current.sold ? (
-                    <span className="sold-tag">Vendu</span>
+                    <span className="sold-tag">{t("Vendu", "Sold")}</span>
                   ) : discogs ? (
-                    <span className="avail-tag">Disponible</span>
+                    <span className="avail-tag">{t("Disponible", "Available")}</span>
                   ) : null}
                 </div>
               </div>
               {current.sold ? (
-                <p className="muted">Ce disque est vendu.</p>
+                <p className="muted">{t("Ce disque est vendu.", "This record has been sold.")}</p>
               ) : discogs ? (
                 <a
                   className="btn btn-block"
                   href={discogs}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label={t("Acheter ce disque", "Buy this record")}
+                  title={t("Acheter ce disque", "Buy this record")}
+                  style={{ fontSize: 22 }}
                 >
-                  Voir sur Discogs →
+                  <CartIcon />
                 </a>
               ) : (
-                <p className="muted">Fiche Discogs bientôt disponible.</p>
+                <p className="muted">{t("Lien d'achat bientôt disponible.", "Purchase link coming soon.")}</p>
               )}
             </>
           ) : (
             <>
-              <p className="panel-label">Vinyle en cours</p>
+              <p className="panel-label">{t("Vinyle en cours", "Now playing")}</p>
               <p className="muted">
-                {live.status === "a_venir" && "Le live n'a pas encore commencé."}
-                {live.status === "en_cours" && "Le premier disque arrive dans un instant…"}
-                {live.status === "termine" && "Le live est terminé. Retrouve ci-dessous tous les disques : clique sur « Écouter » pour reprendre la vidéo au bon moment."}
+                {live.status === "a_venir" && t("Le live n'a pas encore commencé.", "The live has not started yet.")}
+                {live.status === "en_cours" && t("Le premier disque arrive dans un instant…", "The first record is coming up in a moment…")}
+                {live.status === "termine" && t("Le live est terminé. Retrouve ci-dessous tous les disques : clique sur « Écouter » pour reprendre la vidéo au bon moment.", "The live has ended. Every record is listed below: click “Listen” to jump to the right moment in the video.")}
               </p>
             </>
           )}
@@ -191,38 +199,38 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
 
       {played.length > 0 && (
         <section className="history">
-          <h2 className="display">{isReplay ? "Tracklist du replay" : "Déjà passés"}</h2>
+          <h2 className="display">{isReplay ? t("Tracklist du replay", "Replay tracklist") : t("Déjà passés", "Already played")}</h2>
           <div>
-            {played.map((t) => {
-              const link = safeDiscogsUrl(t.discogs_url);
-              const p = formatPrice(t.price);
-              const offset = isReplay && embed ? replayOffsetFor(t) : null;
-              const status = t.sold ? (
-                <span className="sold-tag">Vendu</span>
+            {played.map((tk) => {
+              const link = safeHttpsUrl(tk.discogs_url);
+              const p = formatPrice(tk.price, lang);
+              const offset = isReplay && embed ? replayOffsetFor(tk) : null;
+              const status = tk.sold ? (
+                <span className="sold-tag">{t("Vendu", "Sold")}</span>
               ) : link ? (
-                <span className="avail-tag">Disponible</span>
+                <span className="avail-tag">{t("Disponible", "Available")}</span>
               ) : null;
               return (
-                <div key={t.id} className={`track-row${t.id === current?.id ? " is-current" : ""}${t.sold ? " is-sold" : ""}`}>
-                  <span className="track-pos">{t.position}</span>
+                <div key={tk.id} className={`track-row${tk.id === current?.id ? " is-current" : ""}${tk.sold ? " is-sold" : ""}`}>
+                  <span className="track-pos">{tk.position}</span>
                   <div>
-                    <div>{t.title}</div>
+                    <div>{tk.title}</div>
                     <div className="track-artist">
-                      {t.artist}
+                      {tk.artist}
                       {offset != null && (
                         <button className="replay-btn" onClick={() => { setReplayStart(offset); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-                          ▶ Écouter
+                          ▶ {t("Écouter", "Listen")}
                         </button>
                       )}
                     </div>
                     {status && <div className="track-status-m">{status}</div>}
                   </div>
                   <span className="track-price">
-                    {status} {!t.sold && p}
+                    {status} {!tk.sold && p}
                   </span>
-                  {link && !t.sold ? (
+                  {link && !tk.sold ? (
                     <a className="track-link" href={link} target="_blank" rel="noopener noreferrer">
-                      Discogs →
+                      <CartIcon label={t("Acheter", "Buy")} />
                     </a>
                   ) : (
                     <span />

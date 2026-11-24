@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { useSession } from "@/lib/useSession";
+import { useT } from "@/lib/i18n";
 
 export default function NavAuth() {
+  const t = useT();
   const { session, ready } = useSession();
   const [isAdmin, setIsAdmin] = useState(false);
   const userId = session?.user.id ?? null;
@@ -32,7 +34,7 @@ export default function NavAuth() {
   if (!ready) {
     return (
       <span className="btn-ghost" aria-hidden style={{ visibility: "hidden" }}>
-        Connexion
+        {t("Connexion", "Log in")}
       </span>
     );
   }
@@ -40,12 +42,12 @@ export default function NavAuth() {
     <>
       {isAdmin && <Link href="/admin">Admin</Link>}
       <Link href="/regie" className="btn-ghost">
-        Mon espace
+        {t("Mon espace", "My space")}
       </Link>
     </>
   ) : (
     <Link href="/connexion" className="btn-ghost">
-      Connexion
+      {t("Connexion", "Log in")}
     </Link>
   );
 }

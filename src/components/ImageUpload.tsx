@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { safeImageUrl, uploadImage } from "@/lib/images";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   userId: string;
@@ -17,6 +18,7 @@ type Props = {
 
 /** Choix d'une image depuis l'appareil : redimensionnée dans le navigateur puis envoyée dans Supabase Storage. */
 export default function ImageUpload({ userId, kind, label, hint, value, onChange, ratio = "16 / 9" }: Props) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,9 +31,9 @@ export default function ImageUpload({ userId, kind, label, hint, value, onChange
     setError(null);
     setBusy(true);
     try {
-      onChange(await uploadImage(sb, userId, kind, file));
+      onChange(await uploadImage(sb, userId, kind, file, t));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Envoi impossible.");
+      setError(err instanceof Error ? err.message : t("Envoi impossible.", "Upload failed."));
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -47,17 +49,17 @@ export default function ImageUpload({ userId, kind, label, hint, value, onChange
             // eslint-disable-next-line @next/next/no-img-element
             <img src={src} alt="" />
           ) : (
-            <span>Aucune image</span>
+            <span>{t("Aucune image", "No image")}</span>
           )}
         </div>
         <div className="image-upload-actions">
           <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => onFile(e.target.files?.[0])} />
           <button type="button" className="btn-ghost" disabled={busy} onClick={() => inputRef.current?.click()}>
-            {busy ? "Envoi…" : src ? "Changer l'image" : "Choisir une image"}
+            {busy ? t("Envoi…", "Uploading…") : src ? t("Changer l'image", "Change image") : t("Choisir une image", "Choose an image")}
           </button>
           {src && !busy && (
             <button type="button" className="btn-ghost" onClick={() => onChange(null)}>
-              Retirer
+              {t("Retirer", "Remove")}
             </button>
           )}
           {hint && <p className="hint">{hint}</p>}

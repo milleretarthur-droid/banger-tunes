@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { useSession } from "@/lib/useSession";
 import { PRICING } from "@/lib/pricing";
+import { useLang, useT } from "@/lib/i18n";
 
 type Allowance = {
   plan: "monthly" | "annual" | null;
@@ -21,9 +22,11 @@ type Props = {
   onCanPublish: (value: boolean | null) => void;
 };
 
-const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" });
 
 export default function BillingPanel({ userId, refreshKey, onCanPublish }: Props) {
+  const lang = useLang();
+  const t = useT();
+  const dateFmt = new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" });
   const { session } = useSession();
   const [allowance, setAllowance] = useState<Allowance | null>(null);
   const [paid, setPaid] = useState(false);
@@ -100,7 +103,7 @@ export default function BillingPanel({ userId, refreshKey, onCanPublish }: Props
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error ?? "Gestion indisponible.");
+      if (!res.ok || !data.url) throw new Error(data.error ?? t(t("Gestion indisponible.", "Management unavailable."), "Management unavailable."));
       window.location.href = data.url;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gestion indisponible.");
@@ -117,47 +120,50 @@ export default function BillingPanel({ userId, refreshKey, onCanPublish }: Props
     <div className="panel billing">
       {paid && (
         <p className="info" style={{ marginTop: 0, marginBottom: 14 }}>
-          Paiement reçu, merci ! Ton offre est activée en quelques secondes.
+          {t("Paiement reçu, merci ! Ton offre est activée en quelques secondes.", "Payment received, thank you! Your plan will be active within a few seconds.")}
         </p>
       )}
-      <p className="panel-label">Mon offre</p>
+      <p className="panel-label">{t("Mon offre", "My plan")}</p>
 
       {allowance.plan === "annual" && (
         <p className="big-line">
-          Annuel · lives illimités
+          {t("Annuel · lives illimités", "Yearly · unlimited lives")}
           {renewal && (
             <span className="muted">
-              {allowance.cancelAtPeriodEnd ? ` · se termine le ${renewal}` : ` · renouvelé le ${renewal}`}
+              {allowance.cancelAtPeriodEnd ? ` · ${t("se termine le", "ends on")} ${renewal}` : ` · ${t("renouvelé le", "renews on")} ${renewal}`}
             </span>
           )}
         </p>
       )}
       {allowance.plan === "monthly" && (
         <p className="big-line">
-          Mensuel · {allowance.monthlyRemaining} live{allowance.monthlyRemaining > 1 ? "s" : ""} restant
-          {allowance.monthlyRemaining > 1 ? "s" : ""} sur {PRICING.monthlyLives}
+          {lang === "en"
+            ? `Monthly · ${allowance.monthlyRemaining} live${allowance.monthlyRemaining === 1 ? "" : "s"} left out of ${PRICING.monthlyLives}`
+            : `Mensuel · ${allowance.monthlyRemaining} live${allowance.monthlyRemaining > 1 ? "s" : ""} restant${allowance.monthlyRemaining > 1 ? "s" : ""} sur ${PRICING.monthlyLives}`}
           {renewal && (
             <span className="muted">
-              {allowance.cancelAtPeriodEnd ? ` · se termine le ${renewal}` : ` · renouvelé le ${renewal}`}
+              {allowance.cancelAtPeriodEnd ? ` · ${t("se termine le", "ends on")} ${renewal}` : ` · ${t("renouvelé le", "renews on")} ${renewal}`}
             </span>
           )}
         </p>
       )}
       {allowance.credits > 0 && (
         <p className="big-line">
-          {allowance.credits} live{allowance.credits > 1 ? "s" : ""} en réserve
-          <span className="muted"> · utilisé{allowance.credits > 1 ? "s" : ""} quand ton abonnement est épuisé</span>
+          {lang === "en"
+            ? `${allowance.credits} live${allowance.credits === 1 ? "" : "s"} in reserve`
+            : `${allowance.credits} live${allowance.credits > 1 ? "s" : ""} en réserve`}
+          <span className="muted"> · {t(allowance.credits > 1 ? "utilisés quand ton abonnement est épuisé" : "utilisé quand ton abonnement est épuisé", "used when your subscription runs out")}</span>
         </p>
       )}
-      {!hasAnything && <p className="big-line">Aucun live disponible pour le moment.</p>}
+      {!hasAnything && <p className="big-line">{t("Aucun live disponible pour le moment.", "No live available at the moment.")}</p>}
 
       <div className="control-meta" style={{ marginTop: 14 }}>
         <Link href="/tarifs" className="btn-ghost">
-          {hasAnything ? "Voir les offres" : "Choisir une offre"}
+          {hasAnything ? t("Voir les offres", "See plans") : t("Choisir une offre", "Choose a plan")}
         </Link>
         {allowance.plan && (
           <button className="btn-ghost" onClick={manage} disabled={busy}>
-            Gérer mon abonnement
+            {t("Gérer mon abonnement", "Manage my subscription")}
           </button>
         )}
       </div>

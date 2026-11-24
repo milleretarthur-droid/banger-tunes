@@ -11,13 +11,11 @@ export const PRICING = {
   monthlyLives: 5,
 } as const;
 
-const fmt = new Intl.NumberFormat("fr-FR", {
-  style: "currency",
-  currency: "EUR",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
-
-export function eur(cents: number): string {
-  return fmt.format(cents / 100);
+export function eur(cents: number, lang: "fr" | "en" = "fr"): string {
+  return new Intl.NumberFormat(lang === "en" ? "en-GB" : "fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
 }

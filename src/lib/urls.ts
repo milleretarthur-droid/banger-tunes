@@ -8,11 +8,3 @@ export function safeHttpsUrl(value?: string | null): string | null {
     return null;
   }
 }
-
-/** Idem, et le lien doit pointer vers discogs.com. */
-export function safeDiscogsUrl(value?: string | null): string | null {
-  const url = safeHttpsUrl(value);
-  if (!url) return null;
-  const host = new URL(url).hostname;
-  return host === "discogs.com" || host.endsWith(".discogs.com") ? url : null;
-}
