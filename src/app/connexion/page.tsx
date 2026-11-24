@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { safeNext, useSession } from "@/lib/useSession";
+import CreatorFields from "@/components/CreatorFields";
+import type { CityValue } from "@/components/CityPicker";
+import { parseCreatorForm } from "@/lib/creator-profile";
 
 type Mode = "login" | "signup";
 
@@ -15,6 +18,7 @@ export default function ConnexionPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const cityRef = useRef<{ value: CityValue; typed: string }>({ value: null, typed: "" });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -36,6 +40,14 @@ export default function ConnexionPage() {
     const form = new FormData(e.currentTarget);
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
+
+    // Inscription : on valide d'abord le profil (DJ ou magasin) avant de créer le compte.
+    let profile = null;
+    if (mode === "signup") {
+      const parsed = parseCreatorForm(form, cityRef.current);
+      if ("error" in parsed) return setError(parsed.error);
+      profile = parsed.profile;
+    }
     setBusy(true);
 
     if (mode === "login") {
@@ -50,7 +62,8 @@ export default function ConnexionPage() {
       const { data, error: err } = await sb.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}${next}` },
+        // Le profil est enregistré dans le compte, puis créé automatiquement à la première connexion.
+        options: { emailRedirectTo: `${window.location.origin}${next}`, data: { signup_profile: profile } },
       });
       if (err) {
         setError("Inscription impossible. Vérifie ton email et réessaie.");
@@ -74,7 +87,7 @@ export default function ConnexionPage() {
     <div className="regie auth-box">
       <h1 className="display">{mode === "login" ? "Connexion" : "Créer un compte"}</h1>
       <p className="muted" style={{ marginBottom: 24 }}>
-        Écouter les lives reste gratuit, sans compte. Un compte te permet de publier tes propres lives.
+        Écouter les lives reste gratuit, sans compte. Un compte est réservé aux DJ et aux magasins qui veulent publier leurs lives.
       </p>
 
       <div className="tabs" role="tablist">
@@ -99,6 +112,9 @@ export default function ConnexionPage() {
       </div>
 
       <form className="panel form-stack" onSubmit={submit}>
+        {mode === "signup" && (
+          <CreatorFields idPrefix="s" onCityChange={(value, typed) => { cityRef.current = { value, typed }; }} />
+        )}
         <div className="field">
           <label htmlFor="email">Email</label>
           <input id="email" name="email" type="email" autoComplete="email" required />

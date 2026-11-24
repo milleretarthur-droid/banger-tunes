@@ -15,6 +15,8 @@ export type Dj = {
   access_status: "gratuit" | "payant";
   /** Compte suspendu par l'administration : profil et lives masqués. */
   suspended: boolean;
+  /** Adresse postale (magasins). */
+  address: string | null;
   city: string | null;
   lat: number | null;
   lng: number | null;

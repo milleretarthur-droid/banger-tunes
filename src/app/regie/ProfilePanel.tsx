@@ -45,6 +45,7 @@ export default function ProfilePanel({ dj, onSaved }: Props) {
     setBusy(true);
     const patch: Partial<Dj> = {
       name,
+      address: dj.kind === "store" ? String(form.get("address") ?? "").trim().slice(0, 200) || null : null,
       genre: String(form.get("genre") ?? "").trim() || null,
       bio: String(form.get("bio") ?? "").trim() || null,
       discogs_url: discogsRaw || null,
@@ -81,6 +82,12 @@ export default function ProfilePanel({ dj, onSaved }: Props) {
             <label htmlFor="p-name">Nom</label>
             <input id="p-name" name="name" required maxLength={80} defaultValue={dj.name} />
           </div>
+          {dj.kind === "store" && (
+            <div className="field">
+              <label htmlFor="p-address">Adresse du magasin</label>
+              <input id="p-address" name="address" maxLength={200} defaultValue={dj.address ?? ""} />
+            </div>
+          )}
           <div className="field">
             <label htmlFor="p-genre">Style(s)</label>
             <input id="p-genre" name="genre" maxLength={80} defaultValue={dj.genre ?? ""} placeholder="House · Disco" />
