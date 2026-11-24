@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getSupabase } from "./supabase";
-import type { LiveWithDj, Track } from "./types";
+import type { Dj, LiveWithDj, Track } from "./types";
 
 export const getLives = cache(async (): Promise<LiveWithDj[]> => {
   const sb = getSupabase();
@@ -13,7 +13,8 @@ export const getLives = cache(async (): Promise<LiveWithDj[]> => {
     console.error("getLives", error.message);
     return [];
   }
-  return (data ?? []) as LiveWithDj[];
+  // Les créateurs suspendus par l'administration disparaissent du site.
+  return ((data ?? []) as LiveWithDj[]).filter((l) => !l.dj?.suspended);
 });
 
 export const getLive = cache(async (id: string): Promise<LiveWithDj | null> => {
@@ -28,7 +29,8 @@ export const getLive = cache(async (id: string): Promise<LiveWithDj | null> => {
     console.error("getLive", error.message);
     return null;
   }
-  return (data as LiveWithDj | null) ?? null;
+  const live = (data as LiveWithDj | null) ?? null;
+  return live?.dj?.suspended ? null : live;
 });
 
 export async function getTracks(liveId: string): Promise<Track[]> {
@@ -44,4 +46,21 @@ export async function getTracks(liveId: string): Promise<Track[]> {
     return [];
   }
   return (data ?? []) as Track[];
+}
+
+export const getDjBySlug = cache(async (slug: string): Promise<Dj | null> => {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.from("djs").select("*").eq("slug", slug).maybeSingle();
+  if (error) {
+    console.error("getDjBySlug", error.message);
+    return null;
+  }
+  const dj = (data as Dj | null) ?? null;
+  return dj?.suspended ? null : dj;
+});
+
+export async function getLivesOfDj(djId: string): Promise<LiveWithDj[]> {
+  const lives = await getLives();
+  return lives.filter((l) => l.dj_id === djId);
 }

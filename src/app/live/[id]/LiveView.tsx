@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import FollowButton from "@/components/FollowButton";
 import { getSupabase } from "@/lib/supabase";
 import type { Dj, Live, Track } from "@/lib/types";
 import { youtubeEmbedUrl } from "@/lib/youtube";
@@ -17,6 +19,7 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
   const [live, setLive] = useState<Live>(initialLive);
   const [tracks, setTracks] = useState<Track[]>(initialTracks);
   const [connected, setConnected] = useState(false);
+  const [replayStart, setReplayStart] = useState<number | null>(null);
   const liveId = initialLive.id;
 
   const refresh = useCallback(async () => {
@@ -71,10 +74,22 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
       live.status === "termine"
         ? tracks
         : tracks.filter((t) => live.current_index > 0 && t.position <= live.current_index);
-    return [...list].reverse();
+    // Live terminé : ordre chronologique pour suivre le replay ; sinon le dernier disque en premier.
+    return live.status === "termine" ? list : [...list].reverse();
   }, [tracks, live.status, live.current_index]);
 
-  const embed = youtubeEmbedUrl(live.youtube_url);
+  const isReplay = live.status === "termine";
+  const embed = youtubeEmbedUrl(
+    live.youtube_url,
+    replayStart != null ? { start: replayStart, autoplay: true } : {},
+  );
+
+  // Moment de la vidéo où un disque a été lancé (heure de passage − heure de démarrage + décalage).
+  function replayOffsetFor(t: Track): number | null {
+    if (!t.played_at || !live.started_at) return null;
+    const secs = (new Date(t.played_at).getTime() - new Date(live.started_at).getTime()) / 1000 + (live.replay_offset ?? 0);
+    return Number.isFinite(secs) ? Math.max(0, Math.round(secs) - 5) : null;
+  }
   const discogs = safeDiscogsUrl(current?.discogs_url);
   const cover = safeHttpsUrl(current?.cover_url);
   const price = formatPrice(current?.price);
@@ -91,12 +106,17 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
         {live.status === "a_venir" && (
           <span className="status-pill">À venir · {formatDate(live.scheduled_at)}</span>
         )}
-        {live.status === "termine" && <span className="status-pill">Live terminé</span>}
+        {live.status === "termine" && <span className="status-pill">Replay</span>}
         <h1 className="display live-title">{live.title}</h1>
         {dj && (
           <p className="live-dj">
-            avec <strong>{dj.name}</strong>
+            avec{" "}
+            <Link href={`/dj/${dj.slug}`}>
+              <strong>{dj.name}</strong>
+            </Link>
             {dj.genre ? ` · ${dj.genre}` : ""}
+            {dj.city ? ` · ${dj.city}` : ""}{" "}
+            <FollowButton djId={dj.id} djSlug={dj.slug} />
           </p>
         )}
       </header>
@@ -105,6 +125,7 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
         <div className="player">
           {embed ? (
             <iframe
+              key={replayStart ?? "live"}
               src={embed}
               title={`Lecteur YouTube — ${live.title}`}
               allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen"
@@ -131,9 +152,12 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
                   <h2 className="now-title">{current.title}</h2>
                   <p className="now-artist">{current.artist}</p>
                   {price && <p className="now-price">{price}</p>}
+                  {current.sold && <span className="sold-tag">Vendu</span>}
                 </div>
               </div>
-              {discogs ? (
+              {current.sold ? (
+                <p className="muted">Ce disque est vendu.</p>
+              ) : discogs ? (
                 <a
                   className="btn btn-gold btn-block"
                   href={discogs}
@@ -152,7 +176,7 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
               <p className="muted">
                 {live.status === "a_venir" && "Le live n'a pas encore commencé."}
                 {live.status === "en_cours" && "Le premier disque arrive dans un instant…"}
-                {live.status === "termine" && "Le live est terminé. Retrouve ci-dessous tous les disques passés."}
+                {live.status === "termine" && "Le live est terminé. Retrouve ci-dessous tous les disques : clique sur « Écouter » pour reprendre la vidéo au bon moment."}
               </p>
             </>
           )}
@@ -161,20 +185,28 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
 
       {played.length > 0 && (
         <section className="history">
-          <h2 className="display">{live.status === "termine" ? "Tracklist complète" : "Déjà passés"}</h2>
+          <h2 className="display">{isReplay ? "Tracklist du replay" : "Déjà passés"}</h2>
           <div>
             {played.map((t) => {
               const link = safeDiscogsUrl(t.discogs_url);
               const p = formatPrice(t.price);
+              const offset = isReplay && embed ? replayOffsetFor(t) : null;
               return (
-                <div key={t.id} className={`track-row${t.id === current?.id ? " is-current" : ""}`}>
+                <div key={t.id} className={`track-row${t.id === current?.id ? " is-current" : ""}${t.sold ? " is-sold" : ""}`}>
                   <span className="track-pos">{t.position}</span>
                   <div>
                     <div>{t.title}</div>
-                    <div className="track-artist">{t.artist}</div>
+                    <div className="track-artist">
+                      {t.artist}
+                      {offset != null && (
+                        <button className="replay-btn" onClick={() => { setReplayStart(offset); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                          ▶ Écouter
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <span className="track-price">{p}</span>
-                  {link ? (
+                  <span className="track-price">{t.sold ? <span className="sold-tag">Vendu</span> : p}</span>
+                  {link && !t.sold ? (
                     <a className="track-link" href={link} target="_blank" rel="noopener noreferrer">
                       Discogs →
                     </a>

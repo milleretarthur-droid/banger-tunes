@@ -1,5 +1,5 @@
 -- =====================================================================
--- Live Banger — schéma Supabase
+-- Banger Tunes — schéma Supabase
 -- À coller dans Supabase > SQL Editor > New query, puis "Run".
 -- Peut être relancé sur un projet vierge uniquement.
 -- =====================================================================

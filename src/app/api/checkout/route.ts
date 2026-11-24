@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       success_url: `${origin}/regie?paiement=ok`,
       cancel_url: `${origin}/tarifs?paiement=annule`,
       locale: "fr",
+      allow_promotion_codes: true,
       ...(customerId ? { customer: customerId } : { customer_email: user.email ?? undefined }),
     };
 

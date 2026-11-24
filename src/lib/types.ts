@@ -13,6 +13,11 @@ export type Dj = {
   instagram_url: string | null;
   photo_url: string | null;
   access_status: "gratuit" | "payant";
+  /** Compte suspendu par l'administration : profil et lives masqués. */
+  suspended: boolean;
+  city: string | null;
+  lat: number | null;
+  lng: number | null;
   created_at: string;
 };
 
@@ -22,6 +27,12 @@ export type Live = {
   title: string;
   youtube_url: string | null;
   scheduled_at: string | null;
+  /** Adresse lisible de la régie : /regie/<slug>. */
+  slug: string;
+  /** Heure réelle du démarrage (sert à caler le replay). */
+  started_at: string | null;
+  /** Décalage en secondes entre le démarrage et le début de la vidéo. */
+  replay_offset: number;
   status: LiveStatus;
   /** Position du disque en cours (0 = aucun disque lancé). */
   current_index: number;
@@ -39,4 +50,8 @@ export type Track = {
   discogs_url: string | null;
   price: number | null;
   cover_url: string | null;
+  /** Heure à laquelle le DJ a lancé ce disque (null = pas encore passé). */
+  played_at: string | null;
+  /** Le DJ indique que le disque est vendu. */
+  sold: boolean;
 };

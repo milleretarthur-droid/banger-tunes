@@ -2,19 +2,25 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import DateTimePicker from "@/components/DateTimePicker";
+import { formatDate } from "@/lib/format";
+import { randomSuffix, slugify } from "@/lib/slug";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { youtubeEmbedUrl } from "@/lib/youtube";
 import { useSession } from "@/lib/useSession";
 import type { Dj, Live } from "@/lib/types";
 import BillingPanel from "./BillingPanel";
 import CreatorSetup from "./CreatorSetup";
-import LiveControl from "./LiveControl";
+import ProfilePanel from "./ProfilePanel";
 
 export default function RegiePage() {
   const { session, ready } = useSession();
   const [dj, setDj] = useState<Dj | null>(null);
   const [djLoaded, setDjLoaded] = useState(false);
   const [lives, setLives] = useState<Live[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [when, setWhen] = useState<Date | null>(null);
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [needsOffer, setNeedsOffer] = useState(false);
   const [canPublish, setCanPublish] = useState<boolean | null>(null);
@@ -29,7 +35,6 @@ export default function RegiePage() {
       setDj(null);
       setDjLoaded(false);
       setLives([]);
-      setSelectedId(null);
       return;
     }
     let cancelled = false;
@@ -62,41 +67,52 @@ export default function RegiePage() {
     setNeedsOffer(false);
     const sb = getSupabase();
     if (!sb || !dj) return;
-    const formEl = e.currentTarget;
-    const form = new FormData(formEl);
-    const when = String(form.get("scheduled_at") ?? "");
+    const form = new FormData(e.currentTarget);
+    const title = String(form.get("title") ?? "").trim();
+    const youtube = String(form.get("youtube_url") ?? "").trim();
+    if (youtube && !youtubeEmbedUrl(youtube)) {
+      setError("Ce lien YouTube n'est pas reconnu. Colle l'adresse de ton live (youtube.com/watch…, youtube.com/live/… ou youtu.be/…).");
+      return;
+    }
 
-    const { data, error: err } = await sb
-      .from("lives")
-      .insert({
-        dj_id: dj.id,
-        title: String(form.get("title") ?? "").trim(),
-        youtube_url: String(form.get("youtube_url") ?? "").trim() || null,
-        scheduled_at: when ? new Date(when).toISOString() : null,
-      })
-      .select()
-      .single();
+    // Adresse lisible : /regie/deep-house-sunset-mix ; un suffixe est ajouté si elle existe déjà.
+    let created: Live | null = null;
+    for (let attempt = 0; attempt < 4 && !created; attempt++) {
+      const base = slugify(title);
+      const slug = attempt === 0 ? base : `${base}-${randomSuffix()}`;
+      const { data, error: err } = await sb
+        .from("lives")
+        .insert({
+          dj_id: dj.id,
+          title,
+          slug,
+          youtube_url: youtube || null,
+          scheduled_at: when ? when.toISOString() : null,
+        })
+        .select()
+        .single();
 
-    if (err) {
+      if (!err) {
+        created = data as Live;
+        break;
+      }
       if (err.message.includes("NO_ENTITLEMENT")) {
         setNeedsOffer(true);
         setError("Tu n'as plus de live disponible. Choisis une offre pour en publier un nouveau.");
-      } else {
-        setError(`Création impossible : ${err.message}`);
+        return;
       }
+      if (err.code !== "23505") {
+        setError(`Création impossible : ${err.message}`);
+        return;
+      }
+    }
+    if (!created) {
+      setError("Création impossible : cette adresse est déjà prise, change légèrement le titre.");
       return;
     }
-    formEl.reset();
-    setLives((prev) => [data as Live, ...prev]);
-    setSelectedId((data as Live).id);
     setBillingKey((k) => k + 1);
+    router.push(`/regie/${created.slug}`);
   }
-
-  function updateLive(updated: Live) {
-    setLives((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
-  }
-
-  const selected = lives.find((l) => l.id === selectedId) ?? null;
 
   if (!isSupabaseConfigured) {
     return (
@@ -136,7 +152,7 @@ export default function RegiePage() {
         <div>
           <h1 className="display">Espace créateur</h1>
           <p className="muted">
-            {dj ? `${dj.name} · ${dj.kind === "store" ? "Magasin de vinyles" : "DJ"}` : session.user.email}
+            {dj ? dj.name : session.user.email}
           </p>
         </div>
         <button className="btn-ghost" onClick={logout}>
@@ -148,6 +164,9 @@ export default function RegiePage() {
 
       {dj && (
         <>
+          <h2 className="display">Mon profil</h2>
+          <ProfilePanel dj={dj} onSaved={setDj} />
+
           <h2 className="display">Mon offre</h2>
           <BillingPanel userId={session.user.id} refreshKey={billingKey} onCanPublish={setCanPublish} />
 
@@ -155,15 +174,18 @@ export default function RegiePage() {
           {lives.length === 0 ? (
             <p className="muted">Aucun live pour l&apos;instant. Crée le premier ci-dessous.</p>
           ) : (
-            <div className="live-pick">
+            <div className="live-list">
               {lives.map((l) => (
-                <button
-                  key={l.id}
-                  className={`btn-ghost${l.id === selectedId ? " is-selected" : ""}`}
-                  onClick={() => setSelectedId(l.id)}
-                >
-                  {l.title}
-                </button>
+                <Link key={l.id} href={`/regie/${l.slug}`} className="live-item">
+                  <span className="live-item-title">{l.title}</span>
+                  <span className="live-item-meta">
+                    <span className={`status-tag status-${l.status}`}>
+                      {l.status === "en_cours" ? "En direct" : l.status === "termine" ? "Terminé" : "À venir"}
+                    </span>
+                    {l.scheduled_at ? formatDate(l.scheduled_at) : "Date à définir"}
+                  </span>
+                  <span className="live-item-go">Ouvrir la régie →</span>
+                </Link>
               ))}
             </div>
           )}
@@ -176,11 +198,11 @@ export default function RegiePage() {
             </div>
             <div className="field">
               <label htmlFor="youtube_url">Lien YouTube du live</label>
-              <input id="youtube_url" name="youtube_url" type="url" placeholder="https://www.youtube.com/live/…" />
+              <input id="youtube_url" name="youtube_url" type="url" placeholder="https://www.youtube.com/live/… (facultatif, modifiable plus tard)" />
             </div>
-            <div className="field">
+            <div className="field field-wide">
               <label htmlFor="scheduled_at">Date et heure</label>
-              <input id="scheduled_at" name="scheduled_at" type="datetime-local" />
+              <DateTimePicker id="scheduled_at" onChange={setWhen} />
             </div>
             <button className="btn" type="submit" disabled={canPublish === false}>
               Créer le live
@@ -202,7 +224,9 @@ export default function RegiePage() {
             </p>
           )}
 
-          {selected && <LiveControl key={selected.id} live={selected} onLiveChange={updateLive} />}
+          <p className="hint" style={{ marginTop: 28 }}>
+            Première fois ? Suis le <Link href="/guide" className="link">guide pas à pas</Link>.
+          </p>
         </>
       )}
     </div>
