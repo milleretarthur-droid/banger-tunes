@@ -116,7 +116,7 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
             </Link>
             {dj.genre ? ` · ${dj.genre}` : ""}
             {dj.city ? ` · ${dj.city}` : ""}{" "}
-            <FollowButton djId={dj.id} djSlug={dj.slug} />
+            <FollowButton djId={dj.id} djName={dj.name} />
           </p>
         )}
       </header>

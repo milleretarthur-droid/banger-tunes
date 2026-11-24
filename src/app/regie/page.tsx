@@ -177,9 +177,16 @@ export default function RegiePage() {
             {dj ? dj.name : session.user.email}
           </p>
         </div>
-        <button className="btn-ghost" onClick={logout}>
-          Se déconnecter
-        </button>
+        <div className="control-meta">
+          {dj && (
+            <Link href="/guide" className="btn-ghost">
+              📖 Guide du créateur
+            </Link>
+          )}
+          <button className="btn-ghost" onClick={logout}>
+            Se déconnecter
+          </button>
+        </div>
       </div>
 
       {djLoaded && !dj && <CreatorSetup userId={session.user.id} onCreated={setDj} />}

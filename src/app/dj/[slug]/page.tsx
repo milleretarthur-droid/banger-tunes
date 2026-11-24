@@ -41,7 +41,7 @@ export default async function DjPage({ params }: Props) {
             {[dj.genre, dj.city].filter(Boolean).join(" · ")}
           </p>
           <div className="control-meta" style={{ marginBottom: 12 }}>
-            <FollowButton djId={dj.id} djSlug={dj.slug} className="btn" />
+            <FollowButton djId={dj.id} djName={dj.name} className="btn" />
             {discogs && (
               <a className="btn-ghost" href={discogs} target="_blank" rel="noopener noreferrer">
                 Boutique Discogs ↗

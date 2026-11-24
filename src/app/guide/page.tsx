@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import CreatorGate from "@/components/CreatorGate";
 
 export const metadata: Metadata = {
   title: "Guide : créer ton premier live",
   description: "Le guide pas à pas pour préparer, lancer et terminer un live sur Banger Tunes, de A à Z.",
+  // Réservé aux créateurs : jamais indexé, aucun lien dans le menu public.
+  robots: { index: false, follow: false },
 };
 
 const steps = [
@@ -23,6 +26,7 @@ const steps = [
 
 export default function GuidePage() {
   return (
+    <CreatorGate>
     <div className="guide">
       <h1 className="display">Créer ton premier live</h1>
       <p className="muted lead">
@@ -181,5 +185,6 @@ export default function GuidePage() {
         </ul>
       </section>
     </div>
+    </CreatorGate>
   );
 }
