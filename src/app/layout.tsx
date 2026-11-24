@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import BrandStamp from "@/components/BrandStamp";
 import NavAuth from "@/components/NavAuth";
 import LangSwitch from "@/components/LangSwitch";
 import { LangProvider } from "@/lib/i18n";
@@ -30,7 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;800&family=Space+Mono:wght@400;700&display=swap"
           rel="stylesheet"
         />
       </head>
@@ -46,8 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </nav>
         <main>{children}</main>
         <footer className="site-footer">
-          <span>Banger Tunes</span>
-          <span>{lang === "en" ? "Every record is linked to its sale listing." : "Chaque disque est relié à son annonce de vente."}</span>
+          <BrandStamp />
         </footer>
         </LangProvider>
       </body>
