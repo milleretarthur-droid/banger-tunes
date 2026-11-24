@@ -268,7 +268,6 @@ img { display: block; max-width: 100%; }
   .hero-grid { flex-direction: column; align-items: flex-start; }
   .track-row { grid-template-columns: 28px 1fr auto; }
   .track-row .track-price { display: none; }
-  .track-status-m { display: block; }
 }
 
 /* ---------- Comptes, tarifs, facturation ---------- */
@@ -466,11 +465,9 @@ img { display: block; max-width: 100%; }
 .notice { background: var(--surface-raised); border-left: 3px solid var(--gold); padding: 12px 16px; margin-top: 14px; border-radius: 0 4px 4px 0; }
 
 /* Vendu et replay */
-.sold-tag { display: inline-block; background: var(--red); color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; }
+.sold-tag { display: inline-block; background: var(--gold); color: #1b1403; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; }
 .avail-tag { display: inline-block; background: var(--gold); color: #1b1403; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; }
-.now-body .sold-tag, .now-body .avail-tag { margin-top: 8px; }
-.track-price .avail-tag, .track-price .sold-tag { margin-right: 6px; }
-.track-status-m { display: none; margin-top: 6px; }
+.now-body .sold-tag, .now-body .avail-tag { margin-top: 0; }
 .track-row.is-sold .track-artist, .track-row.is-sold > div:nth-child(2) > div:first-child { text-decoration: line-through; text-decoration-color: var(--paper-dim); }
 .replay-btn { background: none; border: 0; color: var(--gold); font: 500 13px "Inter", sans-serif; margin-left: 10px; cursor: pointer; }
 .replay-btn:hover { text-decoration: underline; }
@@ -637,7 +634,35 @@ img { display: block; max-width: 100%; }
 /* Modes de vente */
 .store-tag { display: inline-block; background: #2a9d8f; color: #04201c; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; }
 .unrel-tag { display: inline-block; background: #9b5de5; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; }
-.now-body .store-tag, .now-body .unrel-tag { margin-top: 8px; }
-.track-price .store-tag, .track-price .unrel-tag { margin-right: 6px; }
 .btn-danger { color: #ff6b57; border-color: #ff6b57; }
 .mode-select { background: var(--surface-raised); color: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; font: 500 13px "Inter", sans-serif; }
+
+/* Étiquette de vente : même taille sur le disque en cours et dans la liste */
+.sale-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.buy-tag, .sold-tag, .store-tag, .unrel-tag { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; line-height: 1; white-space: nowrap; }
+.buy-tag { background: var(--red); color: #fff; font-size: 16px; }
+.buy-tag:hover { filter: brightness(1.1); }
+.buy-tag .cart-ico { width: 18px; height: 18px; }
+.track-right { display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 600px) {
+  .site-nav { padding: 12px 4vw; gap: 8px; }
+  .logo { font-size: 19px; }
+  .nav-links { gap: 10px; font-size: 13px; }
+  .nav-links .btn-ghost { padding: 7px 10px; font-size: 13px; }
+  .lang-switch button { padding: 4px 7px; font-size: 11px; }
+  .hero { min-height: 0; padding: 72px 5vw 40px; }
+  .hero h1 { font-size: clamp(40px, 13vw, 64px); }
+  .hero-meta { font-size: 15px; margin: 14px 0 22px; }
+  .live-layout { padding-top: 16px; gap: 18px; }
+  .now-panel { padding: 16px; }
+  .now-body { gap: 12px; margin-bottom: 0; }
+  .now-body .vinyl-disc, .now-cover { width: 72px; height: 72px; }
+  .now-title { font-size: 18px; }
+  .history { padding: 32px 5vw 56px; }
+  .history h2 { font-size: 24px; }
+  .track-row { gap: 10px; padding: 12px 0; }
+  .explore-promo { padding: 22px; }
+  .section { padding-left: 5vw; padding-right: 5vw; }
+}

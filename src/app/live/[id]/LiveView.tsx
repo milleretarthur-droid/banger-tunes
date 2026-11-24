@@ -97,9 +97,28 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
     const secs = (new Date(tr.played_at).getTime() - new Date(live.started_at).getTime()) / 1000 + (live.replay_offset ?? 0);
     return Number.isFinite(secs) ? Math.max(0, Math.round(secs) - 5) : null;
   }
-  const discogs = safeHttpsUrl(current?.discogs_url);
   const cover = safeHttpsUrl(current?.cover_url);
   const price = formatPrice(current?.price, lang);
+  const curLink = safeHttpsUrl(current?.discogs_url);
+
+  // Étiquette unique : caddie rouge si à vendre, « Vendu » jaune si vendu, même taille partout.
+  function saleTag(tk: Track, link: string | null) {
+    if (tk.sale_mode === "unreleased") return <span className="unrel-tag">Unreleased</span>;
+    if (tk.sold) return <span className="sold-tag">{t("Vendu", "Sold")}</span>;
+    if (tk.sale_mode === "store")
+      return dj ? (
+        <Link className="store-tag" href={`/dj/${dj.slug}`}>{t("En magasin", "In store")}</Link>
+      ) : (
+        <span className="store-tag">{t("En magasin", "In store")}</span>
+      );
+    if (link)
+      return (
+        <a className="buy-tag" href={link} target="_blank" rel="noopener noreferrer" aria-label={t("Acheter ce disque", "Buy this record")} title={t("Acheter ce disque", "Buy this record")}>
+          <CartIcon />
+        </a>
+      );
+    return null;
+  }
 
   return (
     <>
@@ -158,48 +177,20 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
                 <div>
                   <h2 className="now-title">{current.title}</h2>
                   <p className="now-artist">{current.artist}</p>
-                  {price && <p className="now-price">{price}</p>}
-                  {current.sale_mode === "unreleased" ? (
-                    <span className="unrel-tag">Unreleased</span>
-                  ) : current.sold ? (
-                    <span className="sold-tag">{t("Vendu", "Sold")}</span>
-                  ) : current.sale_mode === "store" ? (
-                    <span className="store-tag">{t("En magasin", "In store")}</span>
-                  ) : discogs ? (
-                    <span className="avail-tag">{t("Disponible", "Available")}</span>
-                  ) : null}
+                  <div className="sale-line">
+                    {price && current.sale_mode !== "unreleased" && <span className="now-price">{price}</span>}
+                    {saleTag(current, curLink)}
+                  </div>
                 </div>
               </div>
-              {current.sale_mode === "unreleased" ? (
-                <p className="muted">{t("Disque inédit : pas encore à vendre. Reste à l'écoute !", "Unreleased record: not for sale yet. Stay tuned!")}</p>
-              ) : current.sold ? (
-                <p className="muted">{t("Ce disque est vendu.", "This record has been sold.")}</p>
-              ) : current.sale_mode === "store" ? (
-                <div>
-                  <p className="muted" style={{ marginBottom: 10 }}>
-                    {t("Disponible uniquement en magasin", "Available in store only")}
-                    {dj?.address ? ` · 📍 ${dj.address}${dj.city && !dj.address.includes(dj.city) ? `, ${dj.city}` : ""}` : dj?.city ? ` · 📍 ${dj.city}` : ""}
-                  </p>
-                  {dj && (
-                    <Link className="btn btn-block" href={`/dj/${dj.slug}`}>
-                      {t("Voir le magasin", "See the shop")}
-                    </Link>
-                  )}
-                </div>
-              ) : discogs ? (
-                <a
-                  className="btn btn-block"
-                  href={discogs}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={t("Acheter ce disque", "Buy this record")}
-                  title={t("Acheter ce disque", "Buy this record")}
-                  style={{ fontSize: 22 }}
-                >
-                  <CartIcon />
-                </a>
-              ) : (
-                <p className="muted">{t("Lien d'achat bientôt disponible.", "Purchase link coming soon.")}</p>
+              {current.sale_mode === "unreleased" && (
+                <p className="muted" style={{ marginTop: 14 }}>{t("Disque inédit : pas encore à vendre. Reste à l'écoute !", "Unreleased record: not for sale yet. Stay tuned!")}</p>
+              )}
+              {current.sale_mode === "store" && !current.sold && (
+                <p className="muted" style={{ marginTop: 14 }}>
+                  {t("Disponible uniquement en magasin", "Available in store only")}
+                  {dj?.address ? ` · 📍 ${dj.address}${dj.city && !dj.address.includes(dj.city) ? `, ${dj.city}` : ""}` : dj?.city ? ` · 📍 ${dj.city}` : ""}
+                </p>
               )}
             </>
           ) : (
@@ -223,15 +214,6 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
               const link = safeHttpsUrl(tk.discogs_url);
               const p = formatPrice(tk.price, lang);
               const offset = isReplay && embed ? replayOffsetFor(tk) : null;
-              const status = tk.sale_mode === "unreleased" ? (
-                <span className="unrel-tag">Unreleased</span>
-              ) : tk.sold ? (
-                <span className="sold-tag">{t("Vendu", "Sold")}</span>
-              ) : tk.sale_mode === "store" ? (
-                <span className="store-tag">{t("En magasin", "In store")}</span>
-              ) : link ? (
-                <span className="avail-tag">{t("Disponible", "Available")}</span>
-              ) : null;
               return (
                 <div key={tk.id} className={`track-row${tk.id === current?.id ? " is-current" : ""}${tk.sold ? " is-sold" : ""}`}>
                   <span className="track-pos">{tk.position}</span>
@@ -245,18 +227,11 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
                         </button>
                       )}
                     </div>
-                    {status && <div className="track-status-m">{status}</div>}
                   </div>
-                  <span className="track-price">
-                    {status} {!tk.sold && p}
-                  </span>
-                  {tk.sale_mode === "online" && link && !tk.sold ? (
-                    <a className="track-link" href={link} target="_blank" rel="noopener noreferrer">
-                      <CartIcon label={t("Acheter", "Buy")} />
-                    </a>
-                  ) : (
-                    <span />
-                  )}
+                  <div className="track-right">
+                    {!tk.sold && tk.sale_mode !== "unreleased" && p && <span className="track-price">{p}</span>}
+                    {saleTag(tk, link)}
+                  </div>
                 </div>
               );
             })}
