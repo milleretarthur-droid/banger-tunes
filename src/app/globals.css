@@ -620,3 +620,24 @@ img { display: block; max-width: 100%; }
 
 /* Icône caddie */
 .cart-ico { width: 1.1em; height: 1.1em; vertical-align: -0.18em; flex: none; }
+
+/* ---------- Rangées horizontales (accueil) ---------- */
+.hrow-wrap { position: relative; margin: 0 -5vw; }
+.hrow { display: flex; gap: 20px; overflow-x: auto; scroll-snap-type: x proximity; padding: 4px 5vw 12px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.hrow::-webkit-scrollbar { display: none; }
+.hrow > .card { flex: 0 0 clamp(210px, 22vw, 270px); scroll-snap-align: start; }
+.hrow-arrow { position: absolute; top: calc(50% - 40px); z-index: 3; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(14,14,12,.85); color: var(--paper); font-size: 28px; line-height: 1; cursor: pointer; opacity: 0; transition: opacity .15s; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+.hrow-wrap:hover .hrow-arrow, .hrow-arrow:focus-visible { opacity: 1; }
+.hrow-left { left: calc(5vw - 14px); }
+.hrow-right { right: calc(5vw - 14px); }
+@media (hover: none) { .hrow-arrow { display: none; } }
+.section-head .see-all { font-size: 14px; font-weight: 600; color: var(--paper-dim); }
+.section-head .see-all:hover { color: var(--paper); }
+
+/* Modes de vente */
+.store-tag { display: inline-block; background: #2a9d8f; color: #04201c; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; }
+.unrel-tag { display: inline-block; background: #9b5de5; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; }
+.now-body .store-tag, .now-body .unrel-tag { margin-top: 8px; }
+.track-price .store-tag, .track-price .unrel-tag { margin-right: 6px; }
+.btn-danger { color: #ff6b57; border-color: #ff6b57; }
+.mode-select { background: var(--surface-raised); color: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; font: 500 13px "Inter", sans-serif; }

@@ -14,7 +14,9 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function ExplorerPage() {
+export default async function ExplorerPage({ searchParams }: { searchParams: Promise<{ statut?: string }> }) {
+  const { statut } = await searchParams;
+  const initial = statut === "en_cours" || statut === "a_venir" || statut === "termine" ? statut : "all";
   const lives = await getLives();
-  return <ExplorerView lives={lives} />;
+  return <ExplorerView lives={lives} initialStatus={initial} />;
 }

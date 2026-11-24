@@ -159,15 +159,33 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
                   <h2 className="now-title">{current.title}</h2>
                   <p className="now-artist">{current.artist}</p>
                   {price && <p className="now-price">{price}</p>}
-                  {current.sold ? (
+                  {current.sale_mode === "unreleased" ? (
+                    <span className="unrel-tag">Unreleased</span>
+                  ) : current.sold ? (
                     <span className="sold-tag">{t("Vendu", "Sold")}</span>
+                  ) : current.sale_mode === "store" ? (
+                    <span className="store-tag">{t("En magasin", "In store")}</span>
                   ) : discogs ? (
                     <span className="avail-tag">{t("Disponible", "Available")}</span>
                   ) : null}
                 </div>
               </div>
-              {current.sold ? (
+              {current.sale_mode === "unreleased" ? (
+                <p className="muted">{t("Disque inédit : pas encore à vendre. Reste à l'écoute !", "Unreleased record: not for sale yet. Stay tuned!")}</p>
+              ) : current.sold ? (
                 <p className="muted">{t("Ce disque est vendu.", "This record has been sold.")}</p>
+              ) : current.sale_mode === "store" ? (
+                <div>
+                  <p className="muted" style={{ marginBottom: 10 }}>
+                    {t("Disponible uniquement en magasin", "Available in store only")}
+                    {dj?.address ? ` · 📍 ${dj.address}${dj.city && !dj.address.includes(dj.city) ? `, ${dj.city}` : ""}` : dj?.city ? ` · 📍 ${dj.city}` : ""}
+                  </p>
+                  {dj && (
+                    <Link className="btn btn-block" href={`/dj/${dj.slug}`}>
+                      {t("Voir le magasin", "See the shop")}
+                    </Link>
+                  )}
+                </div>
               ) : discogs ? (
                 <a
                   className="btn btn-block"
@@ -205,8 +223,12 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
               const link = safeHttpsUrl(tk.discogs_url);
               const p = formatPrice(tk.price, lang);
               const offset = isReplay && embed ? replayOffsetFor(tk) : null;
-              const status = tk.sold ? (
+              const status = tk.sale_mode === "unreleased" ? (
+                <span className="unrel-tag">Unreleased</span>
+              ) : tk.sold ? (
                 <span className="sold-tag">{t("Vendu", "Sold")}</span>
+              ) : tk.sale_mode === "store" ? (
+                <span className="store-tag">{t("En magasin", "In store")}</span>
               ) : link ? (
                 <span className="avail-tag">{t("Disponible", "Available")}</span>
               ) : null;
@@ -228,7 +250,7 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
                   <span className="track-price">
                     {status} {!tk.sold && p}
                   </span>
-                  {link && !tk.sold ? (
+                  {tk.sale_mode === "online" && link && !tk.sold ? (
                     <a className="track-link" href={link} target="_blank" rel="noopener noreferrer">
                       <CartIcon label={t("Acheter", "Buy")} />
                     </a>

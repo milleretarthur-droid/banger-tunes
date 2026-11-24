@@ -58,4 +58,6 @@ export type Track = {
   played_at: string | null;
   /** Le DJ indique que le disque est vendu. */
   sold: boolean;
+  /** online : lien d'achat · store : achat en magasin uniquement · unreleased : inédit, pas à vendre. */
+  sale_mode: "online" | "store" | "unreleased";
 };

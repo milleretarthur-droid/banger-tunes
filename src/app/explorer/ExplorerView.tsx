@@ -33,11 +33,11 @@ function genresOf(lives: LiveWithDj[]): string[] {
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 14).map(([g]) => g);
 }
 
-export default function ExplorerView({ lives }: { lives: LiveWithDj[] }) {
+export default function ExplorerView({ lives, initialStatus = "all" }: { lives: LiveWithDj[]; initialStatus?: StatusFilter }) {
   const lang = useLang();
   const t = useT();
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState<StatusFilter>("all");
+  const [status, setStatus] = useState<StatusFilter>(initialStatus);
   const [kind, setKind] = useState<KindFilter>("all");
   const [genre, setGenre] = useState<string | null>(null);
   const [view, setView] = useState<"liste" | "carte">("liste");

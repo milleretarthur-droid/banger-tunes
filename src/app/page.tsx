@@ -1,4 +1,5 @@
 import Link from "next/link";
+import HScroll from "@/components/HScroll";
 import { LiveCard } from "@/components/LiveCard";
 import { getFeaturedLive, getLives, getTracks } from "@/lib/data";
 import { formatDate } from "@/lib/format";
@@ -16,7 +17,7 @@ export default async function Home() {
   const aVenir = lives
     .filter((l) => l.status === "a_venir")
     .sort((a, b) => (a.scheduled_at ?? "9999").localeCompare(b.scheduled_at ?? "9999"));
-  const termines = lives.filter((l) => l.status === "termine").slice(0, 8);
+  const termines = lives.filter((l) => l.status === "termine").slice(0, 20);
 
   // Le live mis à la une par l'administration passe en premier, sinon le premier live en direct.
   const featured = (await getFeaturedLive()) ?? enCours[0] ?? null;
@@ -91,7 +92,7 @@ export default async function Home() {
                 <div className="vinyl-label">{t("En cours", "Now playing")} · {featured.dj?.name}</div>
                 <div className="vinyl-title">{featuredTrack.title}</div>
                 <div className="vinyl-artist">{featuredTrack.artist}</div>
-                {featuredDiscogs && (
+                {featuredDiscogs && featuredTrack?.sale_mode === "online" && (
                   <a
                     className="vinyl-link"
                     href={featuredDiscogs}
@@ -128,25 +129,27 @@ export default async function Home() {
         <section className="section">
           <div className="section-head">
             <h2 className="display">{t("En ce moment", "On now")}</h2>
+            <Link href="/explorer?statut=en_cours" className="see-all">{t("Tout afficher", "Show all")}</Link>
           </div>
-          <div className="grid">
+          <HScroll>
             {enCours.map((l) => (
               <LiveCard key={l.id} live={l} lang={lang} />
             ))}
-          </div>
+          </HScroll>
         </section>
       )}
 
       <section className="section" id="a-venir">
         <div className="section-head">
           <h2 className="display">{t("À venir", "Coming up")}</h2>
+          <Link href="/explorer?statut=a_venir" className="see-all">{t("Tout afficher", "Show all")}</Link>
         </div>
         {aVenir.length > 0 ? (
-          <div className="grid">
+          <HScroll>
             {aVenir.map((l) => (
               <LiveCard key={l.id} live={l} lang={lang} />
             ))}
-          </div>
+          </HScroll>
         ) : (
           <p className="empty">{t("Aucun live programmé pour le moment.", "No lives scheduled at the moment.")}</p>
         )}
@@ -155,13 +158,14 @@ export default async function Home() {
       {termines.length > 0 && (
         <section className="section">
           <div className="section-head">
-            <h2 className="display">{t("Lives terminés", "Past lives")}</h2>
+            <h2 className="display">{t("Replays", "Replays")}</h2>
+            <Link href="/explorer?statut=termine" className="see-all">{t("Tout afficher", "Show all")}</Link>
           </div>
-          <div className="grid">
+          <HScroll>
             {termines.map((l) => (
               <LiveCard key={l.id} live={l} lang={lang} />
             ))}
-          </div>
+          </HScroll>
         </section>
       )}
 
