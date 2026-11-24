@@ -2,6 +2,7 @@
 
 import { use, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import DateTimePicker from "@/components/DateTimePicker";
 import ImageUpload from "@/components/ImageUpload";
 import { removeOldImage } from "@/lib/images";
@@ -24,6 +25,8 @@ export default function RegieLivePage({ params }: Props) {
   const { slug } = use(params);
   const lang = useLang();
   const t = useT();
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
   const { session, ready, live, setLive, dj, state } = useOwnedLive(slug);
   const [when, setWhen] = useState<Date | null | undefined>(undefined);
   const [cover, setCover] = useState<string | null | undefined>(undefined);
@@ -56,6 +59,22 @@ export default function RegieLivePage({ params }: Props) {
     setWhen(undefined);
     setCover(undefined);
     setMsg({ ok: true, text: t("Modifications enregistrées.", "Changes saved.") });
+  }
+
+  async function deleteLive() {
+    const sb = getSupabase();
+    if (!sb || !live || live.status !== "termine") return;
+    if (!window.confirm(t(`Supprimer définitivement « ${live.title} » ? Le replay et sa tracklist disparaîtront. Cette action est irréversible.`, `Permanently delete “${live.title}”? The replay and its tracklist will disappear. This cannot be undone.`))) return;
+    setDeleting(true);
+    setMsg(null);
+    const { error } = await sb.from("lives").delete().eq("id", live.id);
+    if (error) {
+      setDeleting(false);
+      setMsg({ ok: false, text: `${t("Suppression impossible", "Could not delete")} : ${error.message}` });
+      return;
+    }
+    void removeOldImage(sb, live.cover_url);
+    router.push("/regie");
   }
 
   if (!isSupabaseConfigured) return <div className="regie muted">{t("Supabase n'est pas connecté.", "Supabase is not connected.")}</div>;
@@ -99,7 +118,7 @@ export default function RegieLivePage({ params }: Props) {
         </div>
       </div>
 
-      <LiveControl live={live} onLiveChange={setLive} />
+      <LiveControl live={live} onLiveChange={setLive} djKind={dj.kind} />
 
       <h2 className="display">{t("Réglages du live", "Live settings")}</h2>
       <form className="panel form-grid" onSubmit={save} key={live.id + live.title}>
@@ -133,6 +152,20 @@ export default function RegieLivePage({ params }: Props) {
         </p>
         {msg && <p className={msg.ok ? "info" : "error"}>{msg.text}</p>}
       </form>
+
+      {live.status === "termine" && (
+        <>
+          <h2 className="display">{t("Supprimer ce live", "Delete this live")}</h2>
+          <div className="panel">
+            <p className="muted" style={{ marginBottom: 14 }}>
+              {t("Ce live est terminé : tu peux le supprimer, avec son replay et sa tracklist. C'est définitif.", "This live has ended: you can delete it, along with its replay and tracklist. This is final.")}
+            </p>
+            <button className="btn-ghost btn-danger" onClick={() => void deleteLive()} disabled={deleting}>
+              {deleting ? t("Suppression…", "Deleting…") : t("Supprimer ce live", "Delete this live")}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

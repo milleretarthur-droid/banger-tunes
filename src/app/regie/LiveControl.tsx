@@ -13,6 +13,8 @@ type Props = {
   onLiveChange: (live: Live) => void;
   /** Mode réduit (studio) : seulement le bouton NEXT, sans l'édition de la tracklist. */
   compact?: boolean;
+  /** Type du créateur : seuls les magasins proposent « en magasin uniquement ». */
+  djKind?: "dj" | "store";
 };
 
 function reorderMessage(message: string, tt: T): string {
@@ -22,11 +24,12 @@ function reorderMessage(message: string, tt: T): string {
   return `${tt("Changement d'ordre impossible", "Could not change the order")} : ${message}`;
 }
 
-export default function LiveControl({ live, onLiveChange, compact = false }: Props) {
+export default function LiveControl({ live, onLiveChange, compact = false, djKind = "dj" }: Props) {
   const lang = useLang();
   const tt = makeT(lang);
   const STATUS_LABEL = { a_venir: tt("À venir", "Coming up"), en_cours: tt("En direct", "Live"), termine: tt("Terminé", "Ended") } as const;
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [newMode, setNewMode] = useState<Track["sale_mode"]>("online");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -90,12 +93,13 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
     if (!sb) return;
     const formEl = e.currentTarget;
     const form = new FormData(formEl);
-    const discogsRaw = String(form.get("discogs_url") ?? "").trim();
+    const mode = newMode;
+    const discogsRaw = mode === "online" ? String(form.get("discogs_url") ?? "").trim() : "";
     if (discogsRaw && !safeHttpsUrl(discogsRaw)) {
       setError(tt("Le lien doit être une adresse web en https://…", "The link must be a web address starting with https://…"));
       return;
     }
-    const priceRaw = String(form.get("price") ?? "").trim();
+    const priceRaw = mode === "unreleased" ? "" : String(form.get("price") ?? "").trim();
     const position = tracks.reduce((max, t) => Math.max(max, t.position), 0) + 1;
 
     const { data, error: err } = await sb
@@ -107,6 +111,7 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
         artist: String(form.get("artist") ?? "").trim(),
         discogs_url: discogsRaw || null,
         price: priceRaw ? Number(priceRaw) : null,
+        sale_mode: mode,
       })
       .select()
       .single();
@@ -115,6 +120,7 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
       return;
     }
     formEl.reset();
+    setNewMode("online");
     setTracks((list) => [...list, data as Track]);
   }
 
@@ -141,6 +147,19 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
       setTracks((list) => list.map((t) => (t.id === track.id ? { ...t, sold: track.sold } : t)));
       setError(`${tt("Mise à jour impossible", "Could not update")} : ${err.message}`);
     }
+  }
+
+  async function changeMode(track: Track, mode: Track["sale_mode"]) {
+    const sb = getSupabase();
+    if (!sb || mode === track.sale_mode) return;
+    setError(null);
+    const patch: Partial<Track> = mode === "unreleased" ? { sale_mode: mode, discogs_url: null, price: null } : { sale_mode: mode };
+    const { error: err } = await sb.from("tracklist").update(patch).eq("id", track.id);
+    if (err) {
+      setError(`${tt("Mise à jour impossible", "Could not update")} : ${err.message}`);
+      return;
+    }
+    setTracks((list) => list.map((x) => (x.id === track.id ? { ...x, ...patch } : x)));
   }
 
   // --- Réorganisation (glisser-déposer ou boutons ▲ ▼) ---
@@ -279,6 +298,19 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
                         </div>
                       </div>
                       <div className="row-actions">
+                        {t.sale_mode !== "unreleased" || !locked ? (
+                          <select
+                            className="mode-select"
+                            value={t.sale_mode}
+                            onChange={(e) => void changeMode(t, e.target.value as Track["sale_mode"])}
+                            aria-label={tt("Mode de vente", "Sale mode")}
+                            disabled={live.status === "termine"}
+                          >
+                            <option value="online">{tt("En ligne", "Online")}</option>
+                            {(djKind === "store" || t.sale_mode === "store") && <option value="store">{tt("En magasin", "In store")}</option>}
+                            <option value="unreleased">Unreleased</option>
+                          </select>
+                        ) : null}
                         <button
                           className={`chip${t.sold ? " is-selected" : ""}`}
                           onClick={() => toggleSold(t)}
@@ -316,13 +348,31 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
                   <input id="t-artist" name="artist" required maxLength={160} />
                 </div>
                 <div className="field">
-                  <label htmlFor="t-discogs">{tt("Lien d'achat", "Purchase link")}</label>
-                  <input id="t-discogs" name="discogs_url" type="url" placeholder={tt("https://… (annonce du disque)", "https://… (record listing)")} />
+                  <label htmlFor="t-mode">{tt("Mode de vente", "Sale mode")}</label>
+                  <select id="t-mode" value={newMode} onChange={(e) => setNewMode(e.target.value as Track["sale_mode"])}>
+                    <option value="online">{tt("En ligne (lien d'achat)", "Online (purchase link)")}</option>
+                    {djKind === "store" && <option value="store">{tt("En magasin uniquement", "In store only")}</option>}
+                    <option value="unreleased">{tt("Unreleased (inédit, ni lien ni achat)", "Unreleased (no link, not for sale)")}</option>
+                  </select>
                 </div>
-                <div className="field">
-                  <label htmlFor="t-price">{tt("Prix (€)", "Price (€)")}</label>
-                  <input id="t-price" name="price" type="number" min="0" step="0.01" />
-                </div>
+                {newMode === "online" && (
+                  <div className="field">
+                    <label htmlFor="t-discogs">{tt("Lien d'achat", "Purchase link")}</label>
+                    <input id="t-discogs" name="discogs_url" type="url" placeholder={tt("https://… (annonce du disque)", "https://… (record listing)")} />
+                  </div>
+                )}
+                {newMode !== "unreleased" && (
+                  <div className="field">
+                    <label htmlFor="t-price">{tt("Prix (€)", "Price (€)")}</label>
+                    <input id="t-price" name="price" type="number" min="0" step="0.01" />
+                  </div>
+                )}
+                {newMode === "store" && (
+                  <p className="hint field-wide">{tt("Les spectateurs verront « Disponible uniquement en magasin » avec l'adresse de ton magasin : de quoi les faire venir en boutique.", "Viewers will see “Available in store only” with your shop address: a way to bring them through the door.")}</p>
+                )}
+                {newMode === "unreleased" && (
+                  <p className="hint field-wide">{tt("Le disque s'affiche avec la mention Unreleased, sans lien ni prix : idéal pour créer du buzz avant une sortie.", "The record shows an Unreleased badge, with no link or price: ideal to build buzz before a release.")}</p>
+                )}
                 <button className="btn" type="submit">
                   {tt("Ajouter le disque", "Add the record")}
                 </button>
