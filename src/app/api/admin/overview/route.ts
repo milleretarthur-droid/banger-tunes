@@ -23,13 +23,14 @@ export async function GET(req: NextRequest) {
       if (data.users.length < 1000) break;
     }
 
-    const [djs, lives, subs, credits] = await Promise.all([
+    const [djs, lives, subs, credits, settings] = await Promise.all([
       sb.from("djs").select("id,user_id,name,slug,kind,genre,city,suspended,created_at").order("created_at", { ascending: false }).limit(2000),
       sb.from("lives").select("id,dj_id,title,slug,status,scheduled_at,created_at").order("created_at", { ascending: false }).limit(5000),
       sb.from("subscriptions").select("user_id,stripe_subscription_id,plan,status,current_period_end,cancel_at_period_end").limit(5000),
       sb.from("live_credits").select("user_id,source,used_at").limit(20000),
+      sb.from("site_settings").select("featured_live_id").eq("id", true).maybeSingle(),
     ]);
-    for (const r of [djs, lives, subs, credits]) if (r.error) throw r.error;
+    for (const r of [djs, lives, subs, credits, settings]) if (r.error) throw r.error;
 
     const djRows = (djs.data ?? []) as KpiDj[];
     const liveRows = (lives.data ?? []) as KpiLive[];
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       kpis,
+      featuredLiveId: (settings.data as { featured_live_id: string | null } | null)?.featured_live_id ?? null,
       creators: djRows.map((d) => ({
         ...d,
         email: d.user_id ? (emailOf.get(d.user_id) ?? null) : null,

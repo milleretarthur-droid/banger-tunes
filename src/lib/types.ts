@@ -26,6 +26,8 @@ export type Live = {
   dj_id: string;
   title: string;
   youtube_url: string | null;
+  /** Image de présentation du live (https), affichée sur les cartes. */
+  cover_url: string | null;
   scheduled_at: string | null;
   /** Adresse lisible de la régie : /regie/<slug>. */
   slug: string;

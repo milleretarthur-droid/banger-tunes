@@ -526,3 +526,44 @@ img { display: block; max-width: 100%; }
 .map-popup-name { font-weight: 700; font-size: 15px; }
 .map-popup-city { color: #666; font-size: 12px; margin-bottom: 4px; }
 .map-popup-live { font-size: 13px; }
+
+/* ---------- Lot 3 : page DJ, covers, ville, images ---------- */
+.hero { overflow: hidden; }
+.hero-cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.35; z-index: 0; }
+.hero::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(14, 14, 12, 0.2) 0%, rgba(14, 14, 12, 0.6) 60%, var(--bg) 100%); }
+.hero-cover ~ .hero-grid, .hero-grid { position: relative; z-index: 2; }
+
+.card-art { overflow: hidden; }
+.card-cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.card-tag { z-index: 1; }
+
+.dj-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 440px); gap: 48px; align-items: start; }
+.dj-aside { position: sticky; top: 24px; }
+.dj-section { margin-top: 44px; }
+.dj-section h2 { margin-bottom: 20px; }
+.about-card { position: relative; border-radius: 10px; overflow: hidden; background: linear-gradient(135deg, #221f16, #14130d); border: 1px solid var(--line); aspect-ratio: 4 / 5; display: flex; align-items: flex-end; }
+.about-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.about-initial { position: absolute; inset: 0; display: grid; place-items: center; font: 400 160px "Anton", sans-serif; color: rgba(242, 237, 227, 0.08); }
+.about-text { position: relative; width: 100%; padding: 90px 24px 24px; background: linear-gradient(180deg, transparent 0%, rgba(14, 14, 12, 0.88) 55%, rgba(14, 14, 12, 0.96) 100%); }
+.about-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.about-text p { font-size: 15px; line-height: 1.6; color: var(--paper); white-space: pre-line; }
+@media (max-width: 900px) {
+  .dj-layout { grid-template-columns: 1fr; gap: 32px; }
+  .dj-aside { position: static; order: -1; }
+  .about-card { aspect-ratio: 4 / 3; }
+}
+
+.city-picker { position: relative; }
+.city-picker input { width: 100%; }
+.city-hint { display: block; margin-top: 6px; font-size: 12px; color: var(--paper-dim); }
+.city-ok { color: var(--gold); }
+.city-list { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% - 22px); list-style: none; margin: 0; padding: 4px; background: var(--surface-raised); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); max-height: 280px; overflow-y: auto; }
+.city-list button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--paper); font: 400 14px "Inter", sans-serif; padding: 10px 12px; border-radius: 3px; cursor: pointer; }
+.city-list li.is-active button, .city-list button:hover { background: var(--line); }
+
+.image-upload-row { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.image-upload-preview { width: 200px; max-width: 100%; border: 1px dashed var(--line); border-radius: 6px; overflow: hidden; background: var(--bg); display: grid; place-items: center; font-size: 12px; color: var(--paper-dim); }
+.image-upload-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.image-upload-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; max-width: 320px; }
+.feat-badge { color: var(--gold); font-weight: 600; font-size: 12px; }

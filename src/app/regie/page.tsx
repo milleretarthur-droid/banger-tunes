@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import CityPicker, { type CityValue } from "@/components/CityPicker";
 import DateTimePicker from "@/components/DateTimePicker";
+import ImageUpload from "@/components/ImageUpload";
 import { formatDate } from "@/lib/format";
 import { randomSuffix, slugify } from "@/lib/slug";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -25,6 +27,8 @@ export default function RegiePage() {
   const [needsOffer, setNeedsOffer] = useState(false);
   const [canPublish, setCanPublish] = useState<boolean | null>(null);
   const [billingKey, setBillingKey] = useState(0);
+  const [cover, setCover] = useState<string | null>(null);
+  const cityRef = useRef<{ value: CityValue; typed: string }>({ value: null, typed: "" });
 
   const userId = session?.user.id ?? null;
 
@@ -75,6 +79,14 @@ export default function RegiePage() {
       return;
     }
 
+    // Ville (si le profil n'en a pas encore) : choisie dans la liste pour apparaître sur la carte.
+    const needsCity = dj.lat == null || dj.lng == null;
+    const { value: cityValue, typed: cityTyped } = cityRef.current;
+    if (needsCity && cityTyped.trim() && !cityValue) {
+      setError("Choisis ta ville dans la liste déroulante pour que ton live apparaisse sur la carte.");
+      return;
+    }
+
     // Adresse lisible : /regie/deep-house-sunset-mix ; un suffixe est ajouté si elle existe déjà.
     let created: Live | null = null;
     for (let attempt = 0; attempt < 4 && !created; attempt++) {
@@ -87,6 +99,7 @@ export default function RegiePage() {
           title,
           slug,
           youtube_url: youtube || null,
+          cover_url: cover,
           scheduled_at: when ? when.toISOString() : null,
         })
         .select()
@@ -109,6 +122,15 @@ export default function RegiePage() {
     if (!created) {
       setError("Création impossible : cette adresse est déjà prise, change légèrement le titre.");
       return;
+    }
+    if (needsCity && cityValue) {
+      const { data: updated } = await sb
+        .from("djs")
+        .update({ city: cityValue.city, lat: cityValue.lat, lng: cityValue.lng })
+        .eq("id", dj.id)
+        .select()
+        .single();
+      if (updated) setDj(updated as Dj);
     }
     setBillingKey((k) => k + 1);
     router.push(`/regie/${created.slug}`);
@@ -204,6 +226,22 @@ export default function RegiePage() {
               <label htmlFor="scheduled_at">Date et heure</label>
               <DateTimePicker id="scheduled_at" onChange={setWhen} />
             </div>
+            {userId && (
+              <ImageUpload
+                userId={userId}
+                kind="cover"
+                label="Cover du live (facultatif)"
+                hint="Une belle image donne envie de cliquer. Format paysage conseillé (JPEG, PNG ou WebP)."
+                value={cover}
+                onChange={setCover}
+              />
+            )}
+            {dj && (dj.lat == null || dj.lng == null) && (
+              <div className="field field-wide">
+                <label htmlFor="live-city">Ta ville (pour apparaître sur la carte)</label>
+                <CityPicker id="live-city" onChange={(value, typed) => { cityRef.current = { value, typed }; }} />
+              </div>
+            )}
             <button className="btn" type="submit" disabled={canPublish === false}>
               Créer le live
             </button>

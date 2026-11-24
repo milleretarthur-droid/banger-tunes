@@ -3,6 +3,8 @@
 import { use, useState, type FormEvent } from "react";
 import Link from "next/link";
 import DateTimePicker from "@/components/DateTimePicker";
+import ImageUpload from "@/components/ImageUpload";
+import { removeOldImage } from "@/lib/images";
 import { formatDate } from "@/lib/format";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { youtubeEmbedUrl } from "@/lib/youtube";
@@ -18,6 +20,7 @@ export default function RegieLivePage({ params }: Props) {
   const { slug } = use(params);
   const { session, ready, live, setLive, dj, state } = useOwnedLive(slug);
   const [when, setWhen] = useState<Date | null | undefined>(undefined);
+  const [cover, setCover] = useState<string | null | undefined>(undefined);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   async function save(e: FormEvent<HTMLFormElement>) {
@@ -37,12 +40,15 @@ export default function RegieLivePage({ params }: Props) {
       youtube_url: youtube || null,
       replay_offset: Math.max(-3600, Math.min(86400, Math.round(offset))),
     };
+    if (cover !== undefined) patch.cover_url = cover;
     if (when !== undefined) patch.scheduled_at = when ? when.toISOString() : null;
 
     const { data, error } = await sb.from("lives").update(patch).eq("id", live.id).select().single();
     if (error) return setMsg({ ok: false, text: `Enregistrement impossible : ${error.message}` });
+    if (cover !== undefined && cover !== live.cover_url) void removeOldImage(sb, live.cover_url);
     setLive(data as Live);
     setWhen(undefined);
+    setCover(undefined);
     setMsg({ ok: true, text: "Modifications enregistrées." });
   }
 
@@ -103,6 +109,14 @@ export default function RegieLivePage({ params }: Props) {
           <label htmlFor="e-when">Date et heure {live.scheduled_at && `(actuelle : ${formatDate(live.scheduled_at)})`}</label>
           <DateTimePicker id="e-when" onChange={setWhen} />
         </div>
+        <ImageUpload
+          userId={session.user.id}
+          kind="cover"
+          label="Cover du live"
+          hint="Affichée sur les cartes du site et en grand sur l'accueil si ton live est mis à la une."
+          value={cover === undefined ? live.cover_url : cover}
+          onChange={setCover}
+        />
         <div className="field">
           <label htmlFor="e-offset">Décalage du replay (secondes)</label>
           <input id="e-offset" name="replay_offset" type="number" step="1" defaultValue={live.replay_offset} />

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { geocodeCity } from "@/lib/geocode";
+import CityPicker, { type CityValue } from "@/components/CityPicker";
+import ImageUpload from "@/components/ImageUpload";
+import { removeOldImage } from "@/lib/images";
 import { getSupabase } from "@/lib/supabase";
 import { safeDiscogsUrl } from "@/lib/urls";
 import type { Dj } from "@/lib/types";
@@ -14,6 +16,12 @@ export default function ProfilePanel({ dj, onSaved }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [photo, setPhoto] = useState<string | null>(dj.photo_url);
+  // Ville : valeur choisie dans la liste, et texte tapé (pour détecter un choix non terminé).
+  const cityRef = useRef<{ value: CityValue; typed: string }>({
+    value: dj.city && dj.lat != null && dj.lng != null ? { city: dj.city, lat: dj.lat, lng: dj.lng } : null,
+    typed: dj.city ?? "",
+  });
 
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,10 +30,15 @@ export default function ProfilePanel({ dj, onSaved }: Props) {
     if (!sb) return;
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
-    const city = String(form.get("city") ?? "").trim();
+    const { value: cityValue, typed: cityTyped } = cityRef.current;
     const discogsRaw = String(form.get("discogs_url") ?? "").trim();
     if (discogsRaw && !safeDiscogsUrl(discogsRaw)) {
       setMsg({ ok: false, text: "Le lien doit être une adresse https://www.discogs.com/…" });
+      return;
+    }
+
+    if (cityTyped.trim() && !cityValue) {
+      setMsg({ ok: false, text: "Choisis ta ville dans la liste déroulante pour qu'elle apparaisse sur la carte." });
       return;
     }
 
@@ -35,25 +48,17 @@ export default function ProfilePanel({ dj, onSaved }: Props) {
       genre: String(form.get("genre") ?? "").trim() || null,
       bio: String(form.get("bio") ?? "").trim() || null,
       discogs_url: discogsRaw || null,
-      city: city || null,
+      photo_url: photo,
+      city: cityValue?.city ?? null,
+      lat: cityValue?.lat ?? null,
+      lng: cityValue?.lng ?? null,
     };
-    let note = "";
-    if (city !== (dj.city ?? "") || (city && dj.lat == null)) {
-      if (!city) {
-        patch.lat = null;
-        patch.lng = null;
-      } else {
-        const place = await geocodeCity(city);
-        patch.lat = place?.lat ?? null;
-        patch.lng = place?.lng ?? null;
-        note = place ? " Ta ville apparaît sur la carte." : " Ville introuvable : essaie « Ville, Pays » pour apparaître sur la carte.";
-      }
-    }
     const { data, error } = await sb.from("djs").update(patch).eq("id", dj.id).select().single();
     setBusy(false);
     if (error) return setMsg({ ok: false, text: `Enregistrement impossible : ${error.message}` });
+    if (photo !== dj.photo_url) void removeOldImage(sb, dj.photo_url);
     onSaved(data as Dj);
-    setMsg({ ok: true, text: `Profil enregistré.${note}` });
+    setMsg({ ok: true, text: `Profil enregistré.${cityValue ? " Ta ville apparaît sur la carte." : ""}` });
   }
 
   return (
@@ -82,12 +87,21 @@ export default function ProfilePanel({ dj, onSaved }: Props) {
           </div>
           <div className="field">
             <label htmlFor="p-city">Ville</label>
-            <input id="p-city" name="city" maxLength={80} defaultValue={dj.city ?? ""} placeholder="Nantes, France" />
+            <CityPicker id="p-city" initial={dj} onChange={(value, typed) => { cityRef.current = { value, typed }; }} />
           </div>
           <div className="field">
             <label htmlFor="p-discogs">Boutique Discogs</label>
             <input id="p-discogs" name="discogs_url" type="url" defaultValue={dj.discogs_url ?? ""} placeholder="https://www.discogs.com/seller/…" />
           </div>
+          <ImageUpload
+            userId={dj.user_id ?? ""}
+            kind="profile"
+            label="Visuel (photo du DJ ou logo du magasin)"
+            hint="JPEG, PNG ou WebP. Affiché sur ta page publique, à côté de ta présentation."
+            value={photo}
+            onChange={setPhoto}
+            ratio="4 / 5"
+          />
           <div className="field field-wide">
             <label htmlFor="p-bio">Présentation</label>
             <textarea id="p-bio" name="bio" rows={3} maxLength={500} defaultValue={dj.bio ?? ""} />

@@ -33,6 +33,15 @@ export const getLive = cache(async (id: string): Promise<LiveWithDj | null> => {
   return live?.dj?.suspended ? null : live;
 });
 
+/** Live choisi par l'administrateur pour l'affiche de l'accueil (null s'il n'y en a pas). */
+export const getFeaturedLive = cache(async (): Promise<LiveWithDj | null> => {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data } = await sb.from("site_settings").select("featured_live_id").eq("id", true).maybeSingle();
+  const id = (data as { featured_live_id: string | null } | null)?.featured_live_id;
+  return id ? getLive(id) : null;
+});
+
 export async function getTracks(liveId: string): Promise<Track[]> {
   const sb = getSupabase();
   if (!sb) return [];

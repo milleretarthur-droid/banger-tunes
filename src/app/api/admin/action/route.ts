@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const bad = (msg: string) => NextResponse.json({ error: msg }, { status: 400 });
 
-/** Actions d'administration : suspendre un compte, offrir des lives, supprimer ou clore un live, résilier un abonnement. */
+/** Actions d'administration : suspendre un compte, offrir des lives, supprimer ou clore un live, mettre un live à la une, résilier un abonnement. */
 export async function POST(req: NextRequest) {
   const ctx = await requireAdmin(req);
   if (ctx instanceof NextResponse) return ctx;
@@ -51,6 +51,15 @@ export async function POST(req: NextRequest) {
       case "endLive": {
         if (typeof body.liveId !== "string" || !UUID.test(body.liveId)) return bad("Paramètres invalides.");
         const { error } = await sb.from("lives").update({ status: "termine" }).eq("id", body.liveId);
+        if (error) throw error;
+        break;
+      }
+      case "setFeatured": {
+        // liveId = null : retire le live à la une (l'accueil affiche alors le premier live en direct).
+        if (body.liveId !== null && (typeof body.liveId !== "string" || !UUID.test(body.liveId))) return bad("Paramètres invalides.");
+        const { error } = await sb
+          .from("site_settings")
+          .upsert({ id: true, featured_live_id: body.liveId, updated_at: new Date().toISOString() });
         if (error) throw error;
         break;
       }

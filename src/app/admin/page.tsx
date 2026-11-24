@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import WeeklyChart from "@/components/WeeklyChart";
 import { eur, PRICING } from "@/lib/pricing";
 import { useSession } from "@/lib/useSession";
@@ -14,7 +15,7 @@ type Creator = {
 type AdminLive = { id: string; title: string; slug: string; status: string; scheduled_at: string | null; created_at: string; dj_name: string };
 type AdminSub = { user_id: string; stripe_subscription_id: string; plan: string; status: string; current_period_end: string; cancel_at_period_end: boolean; email: string | null };
 type Overview = {
-  kpis: Kpis; creators: Creator[]; lives: AdminLive[]; subscriptions: AdminSub[];
+  kpis: Kpis; featuredLiveId: string | null; creators: Creator[]; lives: AdminLive[]; subscriptions: AdminSub[];
   pricing: { configured: { stripe: boolean; webhook: boolean; prices: boolean; email: boolean; cron: boolean } };
 };
 type Tab = "apercu" | "comptes" | "lives" | "offres";
@@ -70,23 +71,11 @@ export default function AdminPage() {
   }, [data, q, kindFilter]);
 
   if (!ready) return <div className="regie muted">Chargement…</div>;
-  if (!session) {
-    return (
-      <div className="regie">
-        <h1 className="display">Administration</h1>
-        <Link href="/connexion?next=/admin" className="btn">Se connecter</Link>
-      </div>
-    );
-  }
+  // Page secrète : pour toute personne non connectée, la page « n'existe pas ».
+  if (!session) notFound();
   if (state === "loading") return <div className="regie muted">Chargement…</div>;
-  if (state === "denied") {
-    return (
-      <div className="regie">
-        <h1 className="display">Accès réservé</h1>
-        <p className="muted">Ce compte n&apos;est pas administrateur.</p>
-      </div>
-    );
-  }
+  // Compte connecté mais non administrateur : même réponse que pour une page inexistante.
+  if (state === "denied") notFound();
   if (state === "error" || !data) {
     return (
       <div className="regie">
@@ -197,16 +186,28 @@ export default function AdminPage() {
 
       {tab === "lives" && (
         <div className="table-wrap">
+          <p className="hint" style={{ marginBottom: 12 }}>
+            « Mettre à la une » affiche ce live en grand sur la page d&apos;accueil (avec sa cover). Sans live à la une, l&apos;accueil montre le premier live en direct.
+          </p>
           <table className="admin-table">
             <thead><tr><th>Live</th><th>Créateur</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead>
             <tbody>
               {data.lives.map((l) => (
                 <tr key={l.id}>
-                  <td><Link href={`/live/${l.id}`} className="link">{l.title}</Link></td>
+                  <td>
+                    {data.featuredLiveId === l.id && <span className="feat-badge">★ À la une </span>}
+                    <Link href={`/live/${l.id}`} className="link">{l.title}</Link>
+                  </td>
                   <td>{l.dj_name}</td>
                   <td><span className={`status-tag status-${l.status}`}>{STATUS[l.status] ?? l.status}</span></td>
                   <td>{l.scheduled_at ? dateFmt.format(new Date(l.scheduled_at)) : "—"}</td>
                   <td className="row-actions">
+                    <button
+                      className="btn-ghost"
+                      onClick={() => act({ type: "setFeatured", liveId: data.featuredLiveId === l.id ? null : l.id })}
+                    >
+                      {data.featuredLiveId === l.id ? "Retirer de la une" : "Mettre à la une"}
+                    </button>
                     {l.status !== "termine" && (
                       <button className="btn-ghost" onClick={() => act({ type: "endLive", liveId: l.id }, `Terminer « ${l.title} » ?`)}>Clore</button>
                     )}
