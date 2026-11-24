@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState, type DragEvent, type FormEvent } from
 import { getSupabase } from "@/lib/supabase";
 import type { Live, Track } from "@/lib/types";
 import { formatPrice } from "@/lib/format";
-import { safeDiscogsUrl } from "@/lib/urls";
+import { safeHttpsUrl } from "@/lib/urls";
+import { useLang } from "@/lib/i18n";
+import { makeT, type T } from "@/lib/lang";
 
 type Props = {
   live: Live;
@@ -13,20 +15,17 @@ type Props = {
   compact?: boolean;
 };
 
-const STATUS_LABEL = {
-  a_venir: "À venir",
-  en_cours: "En direct",
-  termine: "Terminé",
-} as const;
-
-function reorderMessage(message: string): string {
-  if (message.includes("REORDER_PLAYED")) return "Les disques déjà passés ne peuvent pas être déplacés.";
-  if (message.includes("REORDER_LOCKED")) return "Un live terminé ne peut plus être modifié.";
-  if (message.includes("REORDER_FORBIDDEN")) return "Tu n'as pas le droit de modifier cette tracklist.";
-  return `Changement d'ordre impossible : ${message}`;
+function reorderMessage(message: string, tt: T): string {
+  if (message.includes("REORDER_PLAYED")) return tt("Les disques déjà passés ne peuvent pas être déplacés.", "Records already played cannot be moved.");
+  if (message.includes("REORDER_LOCKED")) return tt("Un live terminé ne peut plus être modifié.", "An ended live can no longer be edited.");
+  if (message.includes("REORDER_FORBIDDEN")) return tt("Tu n'as pas le droit de modifier cette tracklist.", "You are not allowed to edit this tracklist.");
+  return `${tt("Changement d'ordre impossible", "Could not change the order")} : ${message}`;
 }
 
 export default function LiveControl({ live, onLiveChange, compact = false }: Props) {
+  const lang = useLang();
+  const tt = makeT(lang);
+  const STATUS_LABEL = { a_venir: tt("À venir", "Coming up"), en_cours: tt("En direct", "Live"), termine: tt("Terminé", "Ended") } as const;
   const [tracks, setTracks] = useState<Track[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,7 +63,7 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
     const { data, error: err } = await sb.from("lives").update(patch).eq("id", live.id).select().single();
     setBusy(false);
     if (err) {
-      setError(`Mise à jour impossible : ${err.message}`);
+      setError(`${tt("Mise à jour impossible", "Could not update")} : ${err.message}`);
       return false;
     }
     onLiveChange(data as Live);
@@ -92,8 +91,8 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
     const formEl = e.currentTarget;
     const form = new FormData(formEl);
     const discogsRaw = String(form.get("discogs_url") ?? "").trim();
-    if (discogsRaw && !safeDiscogsUrl(discogsRaw)) {
-      setError("Le lien doit être une adresse https://www.discogs.com/…");
+    if (discogsRaw && !safeHttpsUrl(discogsRaw)) {
+      setError(tt("Le lien doit être une adresse web en https://…", "The link must be a web address starting with https://…"));
       return;
     }
     const priceRaw = String(form.get("price") ?? "").trim();
@@ -112,7 +111,7 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
       .select()
       .single();
     if (err) {
-      setError(`Ajout impossible : ${err.message}`);
+      setError(`${tt("Ajout impossible", "Could not add")} : ${err.message}`);
       return;
     }
     formEl.reset();
@@ -125,7 +124,7 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
     setError(null);
     const { error: err } = await sb.from("tracklist").delete().eq("id", id);
     if (err) {
-      setError(`Suppression impossible : ${err.message}`);
+      setError(`${tt("Suppression impossible", "Could not delete")} : ${err.message}`);
       return;
     }
     setTracks((list) => list.filter((t) => t.id !== id));
@@ -140,7 +139,7 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
     const { error: err } = await sb.from("tracklist").update({ sold }).eq("id", track.id);
     if (err) {
       setTracks((list) => list.map((t) => (t.id === track.id ? { ...t, sold: track.sold } : t)));
-      setError(`Mise à jour impossible : ${err.message}`);
+      setError(`${tt("Mise à jour impossible", "Could not update")} : ${err.message}`);
     }
   }
 
@@ -157,7 +156,7 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
     });
     if (err) {
       setTracks(before);
-      setError(reorderMessage(err.message));
+      setError(reorderMessage(err.message, tt));
       return;
     }
     // L'ordre est enregistré : on relit le live (le disque en cours peut avoir changé de numéro).
@@ -201,40 +200,40 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
     <>
       <div className="panel">
         <div className="control-now">
-          <p className="panel-label">{STATUS_LABEL[live.status]} · disque en cours</p>
-          <p className="big">{current ? `${current.title} — ${current.artist}` : "Aucun disque lancé"}</p>
-          {next && <p className="muted">Ensuite : {next.title} — {next.artist}</p>}
+          <p className="panel-label">{STATUS_LABEL[live.status]} · {tt("disque en cours", "current record")}</p>
+          <p className="big">{current ? `${current.title} — ${current.artist}` : tt("Aucun disque lancé", "No record playing")}</p>
+          {next && <p className="muted">{tt("Ensuite", "Next")} : {next.title} — {next.artist}</p>}
         </div>
 
         <div className="control-buttons">
           <button className="btn-ghost" onClick={goPrev} disabled={busy || live.current_index === 0 || live.status === "termine"}>
-            ← Précédent
+            ← {tt("Précédent", "Previous")}
           </button>
           <button className="btn btn-next" onClick={goNext} disabled={busy || !next || live.status === "termine"}>
-            {next ? "NEXT →" : "Fin de la tracklist"}
+            {next ? "NEXT →" : tt("Fin de la tracklist", "End of tracklist")}
           </button>
         </div>
 
         <div className="control-meta">
           {live.status === "a_venir" && (
             <button className="btn-ghost" onClick={() => patchLive({ status: "en_cours" })} disabled={busy}>
-              Démarrer le live
+              {tt("Démarrer le live", "Start the live")}
             </button>
           )}
           {live.status === "en_cours" && (
             <button
               className="btn-ghost"
               onClick={() => {
-                if (window.confirm("Terminer le live ? C'est définitif : un live terminé ne peut pas être rouvert.")) {
+                if (window.confirm(tt("Terminer le live ? C'est définitif : un live terminé ne peut pas être rouvert.", "End the live? This is final: an ended live cannot be reopened."))) {
                   void patchLive({ status: "termine" });
                 }
               }}
               disabled={busy}
             >
-              Terminer le live
+              {tt("Terminer le live", "End the live")}
             </button>
           )}
-          {live.status === "termine" && <span className="muted">Live terminé</span>}
+          {live.status === "termine" && <span className="muted">{tt("Live terminé", "Live ended")}</span>}
         </div>
         {error && <p className="error">{error}</p>}
       </div>
@@ -244,12 +243,12 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
           <h2 className="display">Tracklist</h2>
           <div className="panel">
             {tracks.length === 0 ? (
-              <p className="muted">Ajoute les disques de ton set, dans l&apos;ordre de passage.</p>
+              <p className="muted">{tt("Ajoute les disques de ton set, dans l'ordre de passage.", "Add the records of your set, in playing order.")}</p>
             ) : (
               <>
                 <p className="hint" style={{ marginBottom: 12 }}>
-                  Glisse un disque par la poignée ⋮⋮ (ou utilise ▲ ▼) pour changer l&apos;ordre.
-                  {lockedCount > 0 && live.status !== "termine" && " Les disques déjà passés sont verrouillés."}
+                  {tt("Glisse un disque par la poignée ⋮⋮ (ou utilise ▲ ▼) pour changer l'ordre.", "Drag a record by the ⋮⋮ handle (or use ▲ ▼) to change the order.")}
+                  {lockedCount > 0 && live.status !== "termine" && " " + tt("Les disques déjà passés sont verrouillés.", "Records already played are locked.")}
                 </p>
                 {tracks.map((t, i) => {
                   const locked = i < lockedCount;
@@ -268,7 +267,7 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
                         setOverIndex(null);
                       }}
                     >
-                      <span className="drag-handle" aria-hidden title={locked ? "Déjà passé" : "Glisser pour déplacer"}>
+                      <span className="drag-handle" aria-hidden title={locked ? tt("Déjà passé", "Already played") : tt("Glisser pour déplacer", "Drag to move")}>
                         {locked ? "▪" : "⋮⋮"}
                       </span>
                       <span className="track-pos">{i + 1}</span>
@@ -276,7 +275,7 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
                         <div>{t.title}</div>
                         <div className="track-artist">
                           {t.artist}
-                          {t.price != null ? ` · ${formatPrice(t.price)}` : ""}
+                          {t.price != null ? ` · ${formatPrice(t.price, lang)}` : ""}
                         </div>
                       </div>
                       <div className="row-actions">
@@ -284,19 +283,19 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
                           className={`chip${t.sold ? " is-selected" : ""}`}
                           onClick={() => toggleSold(t)}
                           aria-pressed={t.sold}
-                          title="Indique si ce disque est vendu"
+                          title={tt("Indique si ce disque est vendu", "Shows whether this record is sold")}
                         >
-                          {t.sold ? "Vendu" : "Disponible"}
+                          {t.sold ? tt("Vendu", "Sold") : tt("Disponible", "Available")}
                         </button>
-                        <button className="btn-ghost btn-icon" onClick={() => move(i, -1)} disabled={locked || i - 1 < lockedCount} aria-label={`Monter ${t.title}`}>
+                        <button className="btn-ghost btn-icon" onClick={() => move(i, -1)} disabled={locked || i - 1 < lockedCount} aria-label={`${tt("Monter", "Move up")} ${t.title}`}>
                           ▲
                         </button>
-                        <button className="btn-ghost btn-icon" onClick={() => move(i, 1)} disabled={locked || i === tracks.length - 1} aria-label={`Descendre ${t.title}`}>
+                        <button className="btn-ghost btn-icon" onClick={() => move(i, 1)} disabled={locked || i === tracks.length - 1} aria-label={`${tt("Descendre", "Move down")} ${t.title}`}>
                           ▼
                         </button>
                         {!locked && (
-                          <button className="btn-ghost" onClick={() => removeTrack(t.id)} aria-label={`Supprimer ${t.title}`}>
-                            Supprimer
+                          <button className="btn-ghost" onClick={() => removeTrack(t.id)} aria-label={`${tt("Supprimer", "Delete")} ${t.title}`}>
+                            {tt("Supprimer", "Delete")}
                           </button>
                         )}
                       </div>
@@ -309,23 +308,23 @@ export default function LiveControl({ live, onLiveChange, compact = false }: Pro
             {live.status !== "termine" && (
               <form className="form-grid" onSubmit={addTrack} style={{ marginTop: 22 }}>
                 <div className="field">
-                  <label htmlFor="t-title">Titre</label>
+                  <label htmlFor="t-title">{tt("Titre", "Title")}</label>
                   <input id="t-title" name="title" required maxLength={160} />
                 </div>
                 <div className="field">
-                  <label htmlFor="t-artist">Artiste</label>
+                  <label htmlFor="t-artist">{tt("Artiste", "Artist")}</label>
                   <input id="t-artist" name="artist" required maxLength={160} />
                 </div>
                 <div className="field">
-                  <label htmlFor="t-discogs">Lien Discogs</label>
-                  <input id="t-discogs" name="discogs_url" type="url" placeholder="https://www.discogs.com/sell/item/…" />
+                  <label htmlFor="t-discogs">{tt("Lien d'achat", "Purchase link")}</label>
+                  <input id="t-discogs" name="discogs_url" type="url" placeholder={tt("https://… (annonce du disque)", "https://… (record listing)")} />
                 </div>
                 <div className="field">
-                  <label htmlFor="t-price">Prix (€)</label>
+                  <label htmlFor="t-price">{tt("Prix (€)", "Price (€)")}</label>
                   <input id="t-price" name="price" type="number" min="0" step="0.01" />
                 </div>
                 <button className="btn" type="submit">
-                  Ajouter le disque
+                  {tt("Ajouter le disque", "Add the record")}
                 </button>
               </form>
             )}

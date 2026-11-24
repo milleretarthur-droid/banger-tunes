@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { useT } from "@/lib/i18n";
 import { searchCities, type City } from "@/lib/cities";
 
 export type CityValue = { city: string; lat: number; lng: number } | null;
@@ -17,6 +18,7 @@ type Props = {
  * `onChange(null, texte)` signale un texte tapé mais pas encore choisi dans la liste.
  */
 export default function CityPicker({ id, initial, onChange }: Props) {
+  const t = useT();
   const autoId = useId();
   const inputId = id ?? autoId;
   const [text, setText] = useState(initial?.city ?? "");
@@ -93,7 +95,7 @@ export default function CityPicker({ id, initial, onChange }: Props) {
         role="combobox"
         aria-expanded={open}
         aria-controls={`${inputId}-list`}
-        placeholder="Tape ta ville : Nantes, Lyon, Bruxelles…"
+        placeholder={t("Tape ta ville : Nantes, Lyon, Bruxelles…", "Type your city: Nantes, Lyon, Brussels…")}
         onChange={(e) => {
           setText(e.target.value);
           setChosen(false);
@@ -102,8 +104,8 @@ export default function CityPicker({ id, initial, onChange }: Props) {
         onFocus={() => options.length > 0 && setOpen(true)}
         onKeyDown={onKey}
       />
-      {loading && <span className="city-hint">Recherche…</span>}
-      {chosen && !loading && <span className="city-hint city-ok">✓ Ville placée sur la carte</span>}
+      {loading && <span className="city-hint">{t("Recherche…", "Searching…")}</span>}
+      {chosen && !loading && <span className="city-hint city-ok">{t("✓ Ville placée sur la carte", "✓ City placed on the map")}</span>}
       {open && options.length > 0 && (
         <ul className="city-list" id={`${inputId}-list`} role="listbox">
           {options.map((c, i) => (

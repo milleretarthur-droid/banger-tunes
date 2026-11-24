@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { LiveCard } from "@/components/LiveCard";
 import type { LiveWithDj } from "@/lib/types";
+import { useLang, useT } from "@/lib/i18n";
 
 const LiveMap = dynamic(() => import("./LiveMap"), {
   ssr: false,
-  loading: () => <div className="map-box map-loading">Chargement de la carte…</div>,
+  loading: () => <div className="map-box map-loading">…</div>,
 });
 
 type StatusFilter = "all" | "en_cours" | "a_venir" | "termine";
@@ -33,6 +34,8 @@ function genresOf(lives: LiveWithDj[]): string[] {
 }
 
 export default function ExplorerView({ lives }: { lives: LiveWithDj[] }) {
+  const lang = useLang();
+  const t = useT();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [kind, setKind] = useState<KindFilter>("all");
@@ -60,29 +63,29 @@ export default function ExplorerView({ lives }: { lives: LiveWithDj[] }) {
 
   const located = useMemo(() => new Set(filtered.filter((l) => l.dj?.lat != null).map((l) => l.dj!.id)).size, [filtered]);
 
-  const statusTabs: [StatusFilter, string][] = [["all", "Tout"], ["en_cours", "En direct"], ["a_venir", "À venir"], ["termine", "Replays"]];
+  const statusTabs: [StatusFilter, string][] = [["all", t("Tout", "All")], ["en_cours", t("En direct", "Live")], ["a_venir", t("À venir", "Coming up")], ["termine", "Replays"]];
 
   return (
     <div className="section">
-      <h1 className="display" style={{ fontSize: "clamp(34px,5vw,56px)", marginBottom: 20 }}>Explorer</h1>
+      <h1 className="display" style={{ fontSize: "clamp(34px,5vw,56px)", marginBottom: 20 }}>{t("Explorer", "Explore")}</h1>
 
       <input
         className="explorer-search"
         type="search"
-        placeholder="Chercher un style, un DJ, un magasin, une ville…"
+        placeholder={t("Chercher un style, un DJ, un magasin, une ville…", "Search for a style, a DJ, a shop, a city…")}
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        aria-label="Rechercher"
+        aria-label={t("Rechercher", "Search")}
       />
 
-      <div className="filter-row" role="group" aria-label="Statut">
+      <div className="filter-row" role="group" aria-label={t("Statut", "Status")}>
         {statusTabs.map(([id, label]) => (
           <button key={id} className={`chip${status === id ? " is-selected" : ""}`} onClick={() => setStatus(id)}>
             {label}
           </button>
         ))}
         <span className="filter-sep" />
-        {([["all", "DJ et magasins"], ["dj", "DJ"], ["store", "Magasins"]] as [KindFilter, string][]).map(([id, label]) => (
+        {([["all", t("DJ et magasins", "DJs and shops")], ["dj", "DJ"], ["store", t("Magasins", "Shops")]] as [KindFilter, string][]).map(([id, label]) => (
           <button key={id} className={`chip${kind === id ? " is-selected" : ""}`} onClick={() => setKind(id)}>
             {label}
           </button>
@@ -90,7 +93,7 @@ export default function ExplorerView({ lives }: { lives: LiveWithDj[] }) {
       </div>
 
       {genres.length > 0 && (
-        <div className="filter-row" role="group" aria-label="Styles">
+        <div className="filter-row" role="group" aria-label={t("Styles", "Styles")}>
           {genres.map((g) => (
             <button key={g} className={`chip${genre === g ? " is-selected" : ""}`} onClick={() => setGenre(genre === g ? null : g)}>
               {g}
@@ -104,8 +107,8 @@ export default function ExplorerView({ lives }: { lives: LiveWithDj[] }) {
           {filtered.length} live{filtered.length > 1 ? "s" : ""}
         </p>
         <div className="tabs" style={{ marginBottom: 0 }}>
-          <button className={`tab${view === "liste" ? " is-active" : ""}`} onClick={() => setView("liste")}>Liste</button>
-          <button className={`tab${view === "carte" ? " is-active" : ""}`} onClick={() => setView("carte")}>Carte</button>
+          <button className={`tab${view === "liste" ? " is-active" : ""}`} onClick={() => setView("liste")}>{t("Liste", "List")}</button>
+          <button className={`tab${view === "carte" ? " is-active" : ""}`} onClick={() => setView("carte")}>{t("Carte", "Map")}</button>
         </div>
       </div>
 
@@ -113,9 +116,9 @@ export default function ExplorerView({ lives }: { lives: LiveWithDj[] }) {
         <>
           <LiveMap lives={filtered} />
           <p className="hint" style={{ margin: "8px 0 20px" }}>
-            <span className="legend-dot pin-live" /> En direct <span className="legend-dot pin-soon" /> À venir <span className="legend-dot pin-replay" /> Replay
+            <span className="legend-dot pin-live" /> {t("En direct", "Live")} <span className="legend-dot pin-soon" /> {t("À venir", "Coming up")} <span className="legend-dot pin-replay" /> Replay
             {" · "}
-            {located} créateur{located > 1 ? "s" : ""} localisé{located > 1 ? "s" : ""} sur {new Set(filtered.map((l) => l.dj_id)).size}
+            {lang === "en" ? `${located} creator${located > 1 ? "s" : ""} located out of ${new Set(filtered.map((l) => l.dj_id)).size}` : `${located} créateur${located > 1 ? "s" : ""} localisé${located > 1 ? "s" : ""} sur ${new Set(filtered.map((l) => l.dj_id)).size}`}
           </p>
         </>
       )}
@@ -123,11 +126,11 @@ export default function ExplorerView({ lives }: { lives: LiveWithDj[] }) {
       {filtered.length > 0 ? (
         <div className="grid">
           {filtered.map((l) => (
-            <LiveCard key={l.id} live={l} />
+            <LiveCard key={l.id} live={l} lang={lang} />
           ))}
         </div>
       ) : (
-        <p className="empty">Aucun live ne correspond à ta recherche.</p>
+        <p className="empty">{t("Aucun live ne correspond à ta recherche.", "No live matches your search.")}</p>
       )}
     </div>
   );

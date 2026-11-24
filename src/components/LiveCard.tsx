@@ -2,8 +2,9 @@ import Link from "next/link";
 import type { LiveWithDj } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import { safeImageUrl } from "@/lib/images";
+import type { Lang } from "@/lib/lang";
 
-export function LiveCard({ live }: { live: LiveWithDj }) {
+export function LiveCard({ live, lang = "fr" }: { live: LiveWithDj; lang?: Lang }) {
   const cover = safeImageUrl(live.cover_url);
   return (
     <Link href={`/live/${live.id}`} className="card">
@@ -14,7 +15,7 @@ export function LiveCard({ live }: { live: LiveWithDj }) {
         )}
         {live.status === "en_cours" && <span className="card-tag tag-live">Live</span>}
         {live.status === "a_venir" && (
-          <span className="card-tag tag-soon">{formatDate(live.scheduled_at)}</span>
+          <span className="card-tag tag-soon">{formatDate(live.scheduled_at, lang)}</span>
         )}
         {live.status === "termine" && <span className="card-tag tag-soon">Replay</span>}
       </div>

@@ -4,8 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap, LayerGroup } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LiveWithDj } from "@/lib/types";
+import { useLang } from "@/lib/i18n";
 
-const STATUS = { en_cours: "En direct", a_venir: "À venir", termine: "Replay" } as const;
+const STATUS = {
+  fr: { en_cours: "En direct", a_venir: "À venir", termine: "Replay" },
+  en: { en_cours: "Live", a_venir: "Coming up", termine: "Replay" },
+} as const;
 const RANK = { en_cours: 0, a_venir: 1, termine: 2 } as const;
 const PIN = { en_cours: "pin-live", a_venir: "pin-soon", termine: "pin-replay" } as const;
 
@@ -14,6 +18,7 @@ export default function LiveMap({ lives }: { lives: LiveWithDj[] }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const layerRef = useRef<LayerGroup | null>(null);
+  const lang = useLang();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -24,7 +29,7 @@ export default function LiveMap({ lives }: { lives: LiveWithDj[] }) {
       const map = L.map(boxRef.current, { scrollWheelZoom: false }).setView([46.6, 2.5], 5);
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 18,
-        attribution: "© les contributeurs d'OpenStreetMap",
+        attribution: lang === "en" ? "© OpenStreetMap contributors" : "© les contributeurs d'OpenStreetMap",
       }).addTo(map);
       layerRef.current = L.layerGroup().addTo(map);
       mapRef.current = map;
@@ -82,7 +87,7 @@ export default function LiveMap({ lives }: { lives: LiveWithDj[] }) {
           const a = document.createElement("a");
           a.href = `/live/${l.id}`;
           a.className = "map-popup-live";
-          a.textContent = `${STATUS[l.status]} · ${l.title}`;
+          a.textContent = `${STATUS[lang][l.status]} · ${l.title}`;
           box.appendChild(a);
         }
         marker.bindPopup(box);
@@ -97,5 +102,5 @@ export default function LiveMap({ lives }: { lives: LiveWithDj[] }) {
     };
   }, [lives, ready]);
 
-  return <div ref={boxRef} className="map-box" role="region" aria-label="Carte des lives" />;
+  return <div ref={boxRef} className="map-box" role="region" aria-label={lang === "en" ? "Map of lives" : "Carte des lives"} />;
 }

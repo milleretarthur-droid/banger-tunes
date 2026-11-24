@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/useSession";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   plan: "live" | "monthly" | "annual";
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export default function CheckoutButton({ plan, label, highlight }: Props) {
+  const t = useT();
   const router = useRouter();
   const { session, ready } = useSession();
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,7 @@ export default function CheckoutButton({ plan, label, highlight }: Props) {
         body: JSON.stringify({ plan }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error ?? "Paiement indisponible.");
+      if (!res.ok || !data.url) throw new Error(data.error ?? t(t("Paiement indisponible.", "Payment unavailable."), "Payment unavailable."));
       window.location.href = data.url;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Paiement indisponible.");
@@ -41,7 +43,7 @@ export default function CheckoutButton({ plan, label, highlight }: Props) {
   return (
     <div>
       <button className={`btn btn-block${highlight ? " btn-gold" : ""}`} onClick={go} disabled={busy || !ready}>
-        {busy ? "Redirection vers le paiement…" : session || !ready ? label : "Créer un compte pour commencer"}
+        {busy ? t("Redirection vers le paiement…", "Redirecting to payment…") : session || !ready ? label : t("Créer un compte pour commencer", "Create an account to get started")}
       </button>
       {error && <p className="error">{error}</p>}
     </div>

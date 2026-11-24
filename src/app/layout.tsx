@@ -1,21 +1,30 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import NavAuth from "@/components/NavAuth";
+import LangSwitch from "@/components/LangSwitch";
+import { LangProvider } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: { default: "Banger Tunes", template: "%s · Banger Tunes" },
-  description:
-    "Regarde des DJ mixer en direct et repère chaque vinyle qu'ils passent, en vente sur Discogs.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await getLang();
+  return {
+    title: { default: "Banger Tunes", template: "%s · Banger Tunes" },
+    description:
+      lang === "en"
+        ? "Watch DJs mix live and spot every record they play, available to buy."
+        : "Regarde des DJ mixer en direct et repère chaque vinyle qu'ils passent, disponible à l'achat.",
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#0e0e0c",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const lang = await getLang();
   return (
-    <html lang="fr">
+    <html lang={lang === "en" ? "en-GB" : "fr"}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -25,20 +34,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <LangProvider lang={lang}>
         <nav className="site-nav">
           <Link href="/" className="logo">
             Banger<span>Tunes</span>
           </Link>
           <div className="nav-links">
-            <Link href="/explorer">Explorer</Link>
+            <Link href="/explorer">{lang === "en" ? "Explore" : "Explorer"}</Link>
+            <LangSwitch />
             <NavAuth />
           </div>
         </nav>
         <main>{children}</main>
         <footer className="site-footer">
           <span>Banger Tunes</span>
-          <span>Les ventes se font sur Discogs.</span>
+          <span>{lang === "en" ? "Every record is linked to its sale listing." : "Chaque disque est relié à son annonce de vente."}</span>
         </footer>
+        </LangProvider>
       </body>
     </html>
   );

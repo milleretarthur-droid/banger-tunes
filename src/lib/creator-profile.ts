@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { safeDiscogsUrl } from "@/lib/urls";
+import { safeHttpsUrl } from "@/lib/urls";
 import { slugify } from "@/lib/slug";
 import type { Dj } from "@/lib/types";
+import type { T } from "@/lib/lang";
+
+const frT: T = (fr) => fr;
 
 /** Informations demandées à l'inscription d'un créateur (DJ ou magasin). */
 export type CreatorProfile = {
@@ -18,17 +21,17 @@ export type CreatorProfile = {
 type CityPick = { value: { city: string; lat: number; lng: number } | null; typed: string };
 
 /** Lit et valide le formulaire d'inscription / de création de profil. */
-export function parseCreatorForm(form: FormData, pick: CityPick): { profile: CreatorProfile } | { error: string } {
+export function parseCreatorForm(form: FormData, pick: CityPick, t: T = frT): { profile: CreatorProfile } | { error: string } {
   const kind = form.get("kind") === "store" ? "store" : "dj";
   const name = String(form.get("name") ?? "").trim();
   const genre = String(form.get("genre") ?? "").trim() || null;
   const address = String(form.get("address") ?? "").trim();
   const discogsRaw = String(form.get("discogs_url") ?? "").trim();
 
-  if (!name) return { error: kind === "store" ? "Indique le nom de ton magasin." : "Indique ton nom de DJ." };
-  if (kind === "store" && address.length < 5) return { error: "Indique l'adresse du magasin (numéro, rue et code postal)." };
-  if (!pick.value) return { error: "Choisis ta ville dans la liste déroulante : tape quelques lettres puis clique sur la bonne proposition." };
-  if (discogsRaw && !safeDiscogsUrl(discogsRaw)) return { error: "Le lien doit être une adresse https://www.discogs.com/…" };
+  if (!name) return { error: kind === "store" ? t("Indique le nom de ton magasin.", "Enter your shop name.") : t("Indique ton nom de DJ.", "Enter your DJ name.") };
+  if (kind === "store" && address.length < 5) return { error: t("Indique l'adresse du magasin (numéro, rue et code postal).", "Enter the shop address (number, street and postcode).") };
+  if (!pick.value) return { error: t("Choisis ta ville dans la liste déroulante : tape quelques lettres puis clique sur la bonne proposition.", "Choose your city from the dropdown: type a few letters, then click the right suggestion.") };
+  if (discogsRaw && !safeHttpsUrl(discogsRaw)) return { error: t("Le lien doit être une adresse web en https://…", "The link must be a web address starting with https://…") };
 
   return {
     profile: {
@@ -64,7 +67,7 @@ export function sanitizeStoredProfile(raw: unknown): CreatorProfile | null {
     city,
     lat,
     lng,
-    discogs_url: discogs && safeDiscogsUrl(discogs) ? discogs : null,
+    discogs_url: discogs && safeHttpsUrl(discogs) ? discogs : null,
   };
 }
 
@@ -73,6 +76,7 @@ export async function createCreatorProfile(
   sb: SupabaseClient,
   userId: string,
   p: CreatorProfile,
+  t: T = frT,
 ): Promise<{ dj: Dj } | { error: string }> {
   for (let attempt = 0; attempt < 3; attempt++) {
     const slug = `${slugify(p.name, "profil")}-${Math.random().toString(36).slice(2, 6)}`;
@@ -82,7 +86,7 @@ export async function createCreatorProfile(
       .select()
       .single();
     if (!error) return { dj: data as Dj };
-    if (error.code !== "23505" || error.message.includes("user_id")) return { error: `Création impossible : ${error.message}` };
+    if (error.code !== "23505" || error.message.includes("user_id")) return { error: `${t("Création impossible", "Could not create the profile")} : ${error.message}` };
   }
-  return { error: "Création impossible, réessaie dans un instant." };
+  return { error: t("Création impossible, réessaie dans un instant.", "Could not create the profile, please try again in a moment.") };
 }
