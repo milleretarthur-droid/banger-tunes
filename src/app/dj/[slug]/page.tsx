@@ -40,6 +40,9 @@ export default async function DjPage({ params }: Props) {
           <p className="muted" style={{ margin: "8px 0 16px" }}>
             {[dj.genre, dj.city].filter(Boolean).join(" · ")}
           </p>
+          {dj.kind === "store" && dj.address && (
+            <p className="muted" style={{ margin: "-8px 0 16px" }}>📍 {dj.address}</p>
+          )}
           <div className="control-meta" style={{ marginBottom: 12 }}>
             <FollowButton djId={dj.id} djName={dj.name} className="btn" />
             {discogs && (

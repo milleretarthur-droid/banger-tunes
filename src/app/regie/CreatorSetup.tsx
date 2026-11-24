@@ -2,17 +2,20 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { getSupabase } from "@/lib/supabase";
-import { safeDiscogsUrl } from "@/lib/urls";
-import CityPicker, { type CityValue } from "@/components/CityPicker";
-import { slugify } from "@/lib/slug";
+import CreatorFields from "@/components/CreatorFields";
+import type { CityValue } from "@/components/CityPicker";
+import { createCreatorProfile, parseCreatorForm } from "@/lib/creator-profile";
 import type { Dj } from "@/lib/types";
 
 type Props = {
   userId: string;
+  /** Message affiché si la création automatique à l'inscription a échoué. */
+  notice?: string | null;
   onCreated: (dj: Dj) => void;
 };
 
-export default function CreatorSetup({ userId, onCreated }: Props) {
+/** Affiché seulement si un compte n'a pas de profil (cas rare : la création se fait normalement à l'inscription). */
+export default function CreatorSetup({ userId, notice, onCreated }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const cityRef = useRef<{ value: CityValue; typed: string }>({ value: null, typed: "" });
@@ -22,45 +25,14 @@ export default function CreatorSetup({ userId, onCreated }: Props) {
     setError(null);
     const sb = getSupabase();
     if (!sb) return;
-
-    const form = new FormData(e.currentTarget);
-    const name = String(form.get("name") ?? "").trim();
-    const kind = form.get("kind") === "store" ? "store" : "dj";
-    const genre = String(form.get("genre") ?? "").trim() || null;
-    const { value: place, typed } = cityRef.current;
-    const discogsRaw = String(form.get("discogs_url") ?? "").trim();
-    if (discogsRaw && !safeDiscogsUrl(discogsRaw)) {
-      setError("Le lien doit être une adresse https://www.discogs.com/…");
-      return;
-    }
-
-    if (typed.trim() && !place) {
-      setError("Choisis ta ville dans la liste déroulante (ou vide le champ).");
-      return;
-    }
+    const parsed = parseCreatorForm(new FormData(e.currentTarget), cityRef.current);
+    if ("error" in parsed) return setError(parsed.error);
 
     setBusy(true);
-    // Le suffixe aléatoire évite les collisions entre deux profils du même nom.
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const slug = `${slugify(name, "profil")}-${Math.random().toString(36).slice(2, 6)}`;
-      const { data, error: err } = await sb
-        .from("djs")
-        .insert({ user_id: userId, kind, name, slug, genre, city: place?.city ?? null, lat: place?.lat ?? null, lng: place?.lng ?? null, discogs_url: discogsRaw || null })
-        .select()
-        .single();
-      if (!err) {
-        setBusy(false);
-        onCreated(data as Dj);
-        return;
-      }
-      if (err.code !== "23505" || err.message.includes("user_id")) {
-        setError(`Création impossible : ${err.message}`);
-        setBusy(false);
-        return;
-      }
-    }
-    setError("Création impossible, réessaie dans un instant.");
+    const res = await createCreatorProfile(sb, userId, parsed.profile);
     setBusy(false);
+    if ("error" in res) return setError(res.error);
+    onCreated(res.dj);
   }
 
   return (
@@ -69,32 +41,9 @@ export default function CreatorSetup({ userId, onCreated }: Props) {
       <p className="muted" style={{ marginBottom: 16 }}>
         Ton premier live est offert dès que ton profil est créé.
       </p>
+      {notice && <p className="error">{notice}</p>}
       <form className="panel form-stack" onSubmit={submit}>
-        <fieldset className="kind-pick">
-          <legend>Tu es…</legend>
-          <label className="kind-option">
-            <input type="radio" name="kind" value="dj" defaultChecked /> DJ
-          </label>
-          <label className="kind-option">
-            <input type="radio" name="kind" value="store" /> Magasin de vinyles
-          </label>
-        </fieldset>
-        <div className="field">
-          <label htmlFor="c-name">Nom affiché</label>
-          <input id="c-name" name="name" required maxLength={80} />
-        </div>
-        <div className="field">
-          <label htmlFor="c-genre">Style musical (facultatif)</label>
-          <input id="c-genre" name="genre" maxLength={80} placeholder="Disco · Boogie" />
-        </div>
-        <div className="field">
-          <label htmlFor="c-city">Ville (pour apparaître sur la carte, facultatif)</label>
-          <CityPicker id="c-city" onChange={(value, typed) => { cityRef.current = { value, typed }; }} />
-        </div>
-        <div className="field">
-          <label htmlFor="c-discogs">Ta page vendeur Discogs (facultatif)</label>
-          <input id="c-discogs" name="discogs_url" type="url" placeholder="https://www.discogs.com/seller/…" />
-        </div>
+        <CreatorFields idPrefix="c" onCityChange={(value, typed) => { cityRef.current = { value, typed }; }} />
         <button className="btn" type="submit" disabled={busy}>
           Créer mon profil
         </button>

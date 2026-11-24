@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { PRICING, eur } from "@/lib/pricing";
 import CheckoutButton from "./CheckoutButton";
+import CreatorGate from "@/components/CreatorGate";
 
 export const metadata: Metadata = {
   title: "Tarifs",
+  robots: { index: false, follow: false },
   description: "Publie tes lives sur Banger Tunes : au live, au mois ou à l'année. Mêmes tarifs pour les DJ et les magasins de vinyles.",
 };
 
@@ -12,6 +14,7 @@ export default function TarifsPage() {
   const annualSaving = PRICING.monthlyCents * 12 - PRICING.annualCents;
 
   return (
+    <CreatorGate next="/tarifs" what="Offres et tarifs">
     <div className="section">
       <div className="section-head">
         <h1 className="display" style={{ fontSize: "clamp(36px, 6vw, 64px)" }}>
@@ -66,5 +69,6 @@ export default function TarifsPage() {
         Paiement sécurisé par Stripe. Les ventes de vinyles se font sur Discogs.
       </p>
     </div>
+    </CreatorGate>
   );
 }

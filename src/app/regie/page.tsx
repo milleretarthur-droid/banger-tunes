@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CityPicker, { type CityValue } from "@/components/CityPicker";
+import { createCreatorProfile, sanitizeStoredProfile } from "@/lib/creator-profile";
 import DateTimePicker from "@/components/DateTimePicker";
 import ImageUpload from "@/components/ImageUpload";
 import { formatDate } from "@/lib/format";
@@ -29,8 +30,28 @@ export default function RegiePage() {
   const [billingKey, setBillingKey] = useState(0);
   const [cover, setCover] = useState<string | null>(null);
   const cityRef = useRef<{ value: CityValue; typed: string }>({ value: null, typed: "" });
+  const autoTried = useRef(false);
+  const [autoNotice, setAutoNotice] = useState<string | null>(null);
 
   const userId = session?.user.id ?? null;
+
+  // --- Création automatique du profil saisi à l'inscription (une seule tentative) ---
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb || !session || !djLoaded || dj || autoTried.current) return;
+    const stored = sanitizeStoredProfile(session.user.user_metadata?.signup_profile);
+    if (!stored) return;
+    autoTried.current = true;
+    (async () => {
+      const res = await createCreatorProfile(sb, session.user.id, stored);
+      if ("error" in res) {
+        setAutoNotice("Ton profil n'a pas pu être créé automatiquement. Vérifie les informations ci-dessous.");
+        return;
+      }
+      setDj(res.dj);
+      void sb.auth.updateUser({ data: { signup_profile: null } });
+    })();
+  }, [session, djLoaded, dj]);
 
   // --- Profil créateur et lives du compte connecté ---
   useEffect(() => {
@@ -183,13 +204,18 @@ export default function RegiePage() {
               📖 Guide du créateur
             </Link>
           )}
+          {dj && (
+            <Link href="/tarifs" className="btn-ghost">
+              💳 Offres et tarifs
+            </Link>
+          )}
           <button className="btn-ghost" onClick={logout}>
             Se déconnecter
           </button>
         </div>
       </div>
 
-      {djLoaded && !dj && <CreatorSetup userId={session.user.id} onCreated={setDj} />}
+      {djLoaded && !dj && <CreatorSetup userId={session.user.id} notice={autoNotice} onCreated={setDj} />}
 
       {dj && (
         <>

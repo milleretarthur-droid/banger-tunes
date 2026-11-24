@@ -7,14 +7,14 @@ import { getSupabase } from "@/lib/supabase";
 import { useSession } from "@/lib/useSession";
 
 /** Réserve son contenu aux créateurs (DJ et magasins) connectés qui ont un profil. */
-export default function CreatorGate({ children }: { children: ReactNode }) {
+export default function CreatorGate({ children, next = "/guide", what = "Guide" }: { children: ReactNode; next?: string; what?: string }) {
   const { session, ready } = useSession();
   const router = useRouter();
   const [isCreator, setIsCreator] = useState<boolean | null>(null);
   const userId = session?.user.id ?? null;
 
   useEffect(() => {
-    if (ready && !session) router.replace("/connexion?next=/guide");
+    if (ready && !session) router.replace(`/connexion?next=${encodeURIComponent(next)}`);
   }, [ready, session, router]);
 
   useEffect(() => {
@@ -37,9 +37,9 @@ export default function CreatorGate({ children }: { children: ReactNode }) {
   if (!isCreator) {
     return (
       <div className="regie">
-        <h1 className="display">Guide réservé aux créateurs</h1>
+        <h1 className="display">{what} réservé aux créateurs</h1>
         <p className="muted" style={{ margin: "12px 0 20px" }}>
-          Crée ton profil de DJ ou de magasin dans Mon espace pour accéder au guide pas à pas.
+          Crée ton profil de DJ ou de magasin dans Mon espace pour y accéder.
         </p>
         <Link href="/regie" className="btn">Aller dans Mon espace</Link>
       </div>

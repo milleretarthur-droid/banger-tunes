@@ -31,7 +31,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Link>
           <div className="nav-links">
             <Link href="/explorer">Explorer</Link>
-            <Link href="/tarifs">Tarifs</Link>
             <NavAuth />
           </div>
         </nav>
