@@ -141,9 +141,13 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
               <strong>{dj.name}</strong>
             </Link>
             {dj.genre ? ` · ${dj.genre}` : ""}
-            {dj.city ? ` · ${dj.city}` : ""}{" "}
-            <FollowButton djId={dj.id} djName={dj.name} />
+            {dj.city ? ` · ${dj.city}` : ""}
           </p>
+        )}
+        {dj && (
+          <div className="live-follow">
+            <FollowButton djId={dj.id} djName={dj.name} className="pill-btn" />
+          </div>
         )}
       </header>
 

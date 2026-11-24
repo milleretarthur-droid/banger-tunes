@@ -120,6 +120,9 @@ img { display: block; max-width: 100%; }
   border-radius: 20px;
   margin-bottom: 22px;
 }
+.live-follow { margin-top: 16px; }
+.pill-btn { display: inline-flex; align-items: center; gap: 8px; background: rgba(242, 237, 227, 0.06); border: 1px solid var(--line); color: var(--paper); font: 600 13px "Inter", sans-serif; padding: 6px 12px; border-radius: 20px; cursor: pointer; }
+.pill-btn:hover { border-color: var(--paper-dim); background: rgba(242, 237, 227, 0.1); }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); animation: pulse 1.6s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
