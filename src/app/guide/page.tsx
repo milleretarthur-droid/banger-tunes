@@ -46,6 +46,10 @@ export default function GuidePage() {
 
       <section id="avant">
         <h2 className="display">0 · Avant de commencer</h2>
+        <p className="notice">
+          <strong>Le plus simple :</strong> un micro (celui de l&apos;ordinateur suffit pour commencer) et une webcam. Pas besoin d&apos;OBS :
+          le bouton <em>Lancer mon live</em> de ta régie te guide en 4 étapes. OBS reste une option pour améliorer l&apos;image et le son.
+        </p>
         <p>Il te faut :</p>
         <ul>
           <li>un compte Banger Tunes (gratuit pour créer, ton premier live est offert) ;</li>
@@ -121,7 +125,7 @@ export default function GuidePage() {
       <section id="studio">
         <h2 className="display">7 · Tester image et son</h2>
         <ol>
-          <li>Dans la régie du live, clique sur <strong>Ouvrir le studio</strong>.</li>
+          <li>Dans la régie du live, clique sur <strong>Lancer mon live</strong>.</li>
           <li>Choisis ta source d&apos;image (caméra, partage d&apos;écran ou aucune) et ton <strong>entrée audio</strong> : micro de l&apos;ordinateur, micro externe, ou la table de mixage si elle apparaît dans la liste.</li>
           <li>Clique sur <strong>Activer</strong> et autorise le navigateur à utiliser caméra et micro.</li>
           <li>Joue un disque : la barre de niveau doit bouger dans la zone verte, sans toucher le bout. Rouge = le son sature, baisse le volume de sortie de ta table.</li>
