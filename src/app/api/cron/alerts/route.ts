@@ -12,7 +12,7 @@ type LiveRow = { id: string; title: string; dj_id: string; scheduled_at: string 
 
 /**
  * Tâche planifiée (Vercel Cron, une fois par jour) : prévient par email les personnes
- * qui suivent un DJ ou un magasin dont un live démarre dans les prochaines 30 heures.
+ * abonnées (sans compte) à un DJ ou un magasin dont un live démarre dans les prochaines 30 heures.
  */
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -44,60 +44,59 @@ export async function GET(req: NextRequest) {
     if (lives.length === 0) return NextResponse.json({ sent: 0, lives: 0 });
 
     const liveIds = lives.map((l) => l.id);
-    const { data: follows, error: followErr } = await sb.from("follows").select("user_id,dj_id").in("dj_id", [...new Set(lives.map((l) => l.dj_id))]);
-    if (followErr) throw followErr;
+    const { data: subsRaw, error: subErr } = await sb
+      .from("subscribers")
+      .select("id,email,token,dj_id")
+      .not("confirmed_at", "is", null)
+      .in("dj_id", [...new Set(lives.map((l) => l.dj_id))]);
+    if (subErr) throw subErr;
+    const subs = (subsRaw ?? []) as { id: string; email: string; token: string; dj_id: string }[];
+    if (subs.length === 0) return NextResponse.json({ sent: 0, lives: lives.length });
 
-    const userIds = [...new Set((follows ?? []).map((f) => f.user_id as string))];
-    if (userIds.length === 0) return NextResponse.json({ sent: 0, lives: lives.length });
+    const { data: logged } = await sb.from("subscriber_alert_log").select("subscriber_id,live_id").in("live_id", liveIds);
+    const alreadySent = new Set((logged ?? []).map((l) => `${l.subscriber_id}:${l.live_id}`));
 
-    const [{ data: prefs }, { data: logged }] = await Promise.all([
-      sb.from("alert_prefs").select("user_id,email_enabled").in("user_id", userIds),
-      sb.from("alert_log").select("user_id,live_id").eq("kind", "reminder").in("live_id", liveIds),
-    ]);
-    const muted = new Set((prefs ?? []).filter((p) => p.email_enabled === false).map((p) => p.user_id as string));
-    const alreadySent = new Set((logged ?? []).map((l) => `${l.user_id}:${l.live_id}`));
-
-    // Un seul email par personne, avec tous les lives concernés.
-    const perUser = new Map<string, LiveRow[]>();
-    for (const f of follows ?? []) {
-      const uid = f.user_id as string;
-      if (muted.has(uid)) continue;
-      for (const l of lives.filter((x) => x.dj_id === f.dj_id)) {
-        if (alreadySent.has(`${uid}:${l.id}`)) continue;
-        const list = perUser.get(uid) ?? [];
-        if (!list.some((x) => x.id === l.id)) list.push(l);
-        perUser.set(uid, list);
+    // Un seul email par adresse, avec tous les lives concernés et un lien de désinscription par créateur.
+    type Item = { subId: string; token: string; live: LiveRow };
+    const perEmail = new Map<string, Item[]>();
+    for (const s of subs) {
+      for (const l of lives.filter((x) => x.dj_id === s.dj_id)) {
+        if (alreadySent.has(`${s.id}:${l.id}`)) continue;
+        const list = perEmail.get(s.email) ?? [];
+        list.push({ subId: s.id, token: s.token, live: l });
+        perEmail.set(s.email, list);
       }
     }
 
+    const base = siteUrl();
     let sent = 0;
     let failed = 0;
-    for (const [uid, list] of perUser) {
-      const { data: u } = await sb.auth.admin.getUserById(uid);
-      const to = u?.user?.email;
-      if (!to) continue;
-      list.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
-      const base = siteUrl();
-      const lines = list.map((l) => ({
-        who: djById.get(l.dj_id)?.name ?? "Un DJ",
-        title: l.title,
-        when: dateFmt.format(new Date(l.scheduled_at)),
-        url: `${base}/live/${l.id}`,
+    for (const [to, items] of perEmail) {
+      items.sort((a, b) => a.live.scheduled_at.localeCompare(b.live.scheduled_at));
+      const lines = items.map((i) => ({
+        who: djById.get(i.live.dj_id)?.name ?? "Un DJ",
+        title: i.live.title,
+        when: dateFmt.format(new Date(i.live.scheduled_at)),
+        url: `${base}/live/${i.live.id}`,
+        stop: `${base}/api/unsubscribe?t=${i.token}`,
       }));
       const subject = lines.length === 1 ? `${lines[0].who} passe en live : ${lines[0].title}` : `${lines.length} lives à venir sur Banger Tunes`;
       const text =
-        `Bonjour,\n\n${lines.map((l) => `• ${l.who} — ${l.title}\n  ${l.when}\n  ${l.url}`).join("\n\n")}\n\n` +
-        `Tu reçois cet email car tu suis ces créateurs. Gérer mes alertes : ${base}/alertes\n`;
+        `Bonjour,\n\n${lines.map((l) => `• ${l.who} — ${l.title}\n  ${l.when}\n  ${l.url}\n  Ne plus recevoir d'alertes de ${l.who} : ${l.stop}`).join("\n\n")}\n`;
       const html =
         `<p>Bonjour,</p><ul>${lines
-          .map((l) => `<li><strong>${escapeHtml(l.who)}</strong> — ${escapeHtml(l.title)}<br>${escapeHtml(l.when)}<br><a href="${l.url}">Voir le live</a></li>`)
-          .join("")}</ul><p style="color:#777">Tu reçois cet email car tu suis ces créateurs. <a href="${base}/alertes">Gérer mes alertes</a></p>`;
+          .map(
+            (l) =>
+              `<li><strong>${escapeHtml(l.who)}</strong> — ${escapeHtml(l.title)}<br>${escapeHtml(l.when)}<br><a href="${l.url}">Voir le live</a>` +
+              `<br><small><a href="${l.stop}" style="color:#777">Ne plus recevoir d'alertes de ${escapeHtml(l.who)}</a></small></li>`,
+          )
+          .join("")}</ul>`;
 
       if (await sendEmail({ to, subject, html, text })) {
         sent++;
-        await sb.from("alert_log").upsert(
-          list.map((l) => ({ user_id: uid, live_id: l.id, kind: "reminder" })),
-          { onConflict: "user_id,live_id,kind", ignoreDuplicates: true },
+        await sb.from("subscriber_alert_log").upsert(
+          items.map((i) => ({ subscriber_id: i.subId, live_id: i.live.id })),
+          { onConflict: "subscriber_id,live_id", ignoreDuplicates: true },
         );
       } else {
         failed++;

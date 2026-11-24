@@ -38,7 +38,6 @@ export default function NavAuth() {
   }
   return session ? (
     <>
-      <Link href="/alertes">Alertes</Link>
       {isAdmin && <Link href="/admin">Admin</Link>}
       <Link href="/regie" className="btn-ghost">
         Mon espace

@@ -88,7 +88,7 @@ export default function RegieLivePage({ params }: Props) {
           </p>
         </div>
         <div className="control-meta">
-          <Link href={`/regie/${live.slug}/studio`} className="btn">Ouvrir le studio</Link>
+          <Link href={`/regie/${live.slug}/studio`} className="btn">Lancer mon live</Link>
           <Link href={`/live/${live.id}`} className="btn-ghost" target="_blank">Page publique ↗</Link>
         </div>
       </div>

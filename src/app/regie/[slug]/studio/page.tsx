@@ -31,6 +31,12 @@ export default function StudioPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [level, setLevel] = useState({ rms: 0, peak: 0 });
   const [ytMsg, setYtMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [tested, setTested] = useState(false);
+  const [opened, setOpened] = useState(false);
+
+  useEffect(() => {
+    if (active) setTested(true);
+  }, [active]);
 
   const stopAll = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -155,12 +161,11 @@ export default function StudioPage({ params }: Props) {
     }
   }
 
-  async function saveYoutube(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function saveYoutubeUrl(raw: string) {
     setYtMsg(null);
     const sb = getSupabase();
     if (!sb || !live) return;
-    const url = String(new FormData(e.currentTarget).get("youtube_url") ?? "").trim();
+    const url = raw.trim();
     if (url && !youtubeEmbedUrl(url)) {
       setYtMsg({ ok: false, text: "Lien non reconnu. Copie l'adresse depuis YouTube (youtube.com/watch…, youtube.com/live/… ou youtu.be/…)." });
       return;
@@ -169,6 +174,22 @@ export default function StudioPage({ params }: Props) {
     if (err) return setYtMsg({ ok: false, text: `Enregistrement impossible : ${err.message}` });
     setLive(data as Live);
     setYtMsg({ ok: true, text: url ? "Lien enregistré : les spectateurs verront ta vidéo sur la page du live." : "Lien retiré." });
+  }
+
+  function saveYoutube(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    void saveYoutubeUrl(String(new FormData(e.currentTarget).get("youtube_url") ?? ""));
+  }
+
+  async function pasteYoutube() {
+    try {
+      const text = await navigator.clipboard.readText();
+      const input = document.getElementById("yt") as HTMLInputElement | null;
+      if (input) input.value = text.trim();
+      await saveYoutubeUrl(text);
+    } catch {
+      setYtMsg({ ok: false, text: "Le navigateur n'a pas autorisé l'accès au presse-papiers : colle le lien dans le champ (Ctrl+V ou ⌘+V)." });
+    }
   }
 
   if (!isSupabaseConfigured) return <div className="regie muted">Supabase n&apos;est pas connecté.</div>;
@@ -201,10 +222,24 @@ export default function StudioPage({ params }: Props) {
   return (
     <div className="regie">
       <Link href={`/regie/${live.slug}`} className="link">← Régie de « {live.title} »</Link>
-      <h1 className="display" style={{ marginTop: 12 }}>Studio</h1>
-      <p className="muted" style={{ marginBottom: 24 }}>
-        Teste ta caméra et ton son avant de lancer le live. Rien n&apos;est envoyé ni enregistré ici : c&apos;est un contrôle local.
+      <h1 className="display" style={{ marginTop: 12 }}>Lancer mon live</h1>
+      <p className="muted" style={{ marginBottom: 20 }}>
+        Un micro et une webcam suffisent : pas besoin de logiciel. Suis les 4 étapes ci-dessous.
       </p>
+
+      <ol className="launch-steps" aria-label="Progression">
+        <li className={tested ? "is-done" : ""}><a href="#etape-1">1 · Tester micro et caméra</a></li>
+        <li className={opened || live.status === "en_cours" ? "is-done" : ""}><a href="#etape-2">2 · Passer en direct sur YouTube</a></li>
+        <li className={live.youtube_url ? "is-done" : ""}><a href="#etape-3">3 · Coller le lien</a></li>
+        <li className={live.status === "en_cours" ? "is-done" : ""}><a href="#etape-4">4 · Lancer sur Banger Tunes</a></li>
+      </ol>
+
+      <p className="notice">
+        <strong>Première fois ?</strong> YouTube doit activer les directs sur ta chaîne, ce qui peut prendre jusqu&apos;à 24 h : fais-le dès aujourd&apos;hui
+        (<a href="https://www.youtube.com/verify" target="_blank" rel="noopener noreferrer" className="link">vérifier ma chaîne ↗</a>, puis dans YouTube Studio : <em>Créer → Passer en direct</em>).
+      </p>
+
+      <h2 className="display" id="etape-1">1 · Teste ton micro et ta caméra</h2>
 
       <div className="studio-grid">
         <div className="panel">
@@ -273,31 +308,43 @@ export default function StudioPage({ params }: Props) {
         </div>
       </div>
 
-      <h2 className="display">Lancer le live sur YouTube</h2>
+      <h2 className="display" id="etape-2">2 · Passe en direct sur YouTube</h2>
       <div className="panel">
-        <p style={{ marginBottom: 14 }}>
-          Banger Tunes affiche ton live YouTube à côté de tes vinyles. La diffusion elle-même se fait depuis YouTube :
-          ce studio sert à vérifier ton image et ton son, puis tu choisis l&apos;une de ces deux méthodes.
-        </p>
-        <div className="method-grid">
-          <div className="method">
-            <strong>A · Depuis YouTube (le plus simple)</strong>
-            <p>YouTube Studio → <em>Créer → Passer en direct → Webcam</em>. Choisis la même caméra et la même entrée audio que ci-dessus.</p>
-            <a className="btn-ghost" href="https://studio.youtube.com" target="_blank" rel="noopener noreferrer">Ouvrir YouTube Studio ↗</a>
-          </div>
-          <div className="method">
-            <strong>B · Avec OBS Studio (plusieurs caméras, son de la table)</strong>
-            <p>Ajoute tes sources dans OBS, colle la clé de diffusion de YouTube dans <em>Paramètres → Diffusion</em>, puis « Démarrer la diffusion ».</p>
-            <Link className="btn-ghost" href="/guide#obs">Voir le tuto OBS →</Link>
-          </div>
+        <ol className="steps-short">
+          <li>Clique sur le bouton ci-dessous : YouTube Studio s&apos;ouvre dans un nouvel onglet.</li>
+          <li>Clique sur <strong>Créer → Passer en direct → Webcam</strong>.</li>
+          <li>Choisis la <strong>même caméra et le même micro</strong> que ci-dessus, un titre, et la visibilité <em>Public</em> ou <em>Non répertorié</em>.</li>
+          <li>Clique sur <strong>Passer en direct</strong> quand tu es prêt.</li>
+        </ol>
+        <div className="control-meta" style={{ marginTop: 14 }}>
+          <a className="btn" href="https://studio.youtube.com" target="_blank" rel="noopener noreferrer" onClick={() => setOpened(true)}>
+            Ouvrir YouTube Studio ↗
+          </a>
         </div>
+        <details className="advanced">
+          <summary>Pour aller plus loin : OBS (plusieurs caméras, son direct de ta table)</summary>
+          <p>
+            Avec OBS Studio, tu ajoutes tes sources, tu colles la clé de diffusion de YouTube dans <em>Paramètres → Diffusion</em>, puis « Démarrer la diffusion ».
+            L&apos;image et le son sont meilleurs, mais l&apos;installation demande plus de réglages.
+          </p>
+          <Link className="btn-ghost" href="/guide#obs">Voir le tuto OBS →</Link>
+        </details>
+      </div>
 
-        <form className="form-grid" onSubmit={saveYoutube} style={{ marginTop: 20 }}>
+      <h2 className="display" id="etape-3">3 · Colle le lien de ton live</h2>
+      <div className="panel">
+        <p style={{ marginBottom: 12 }}>
+          Dans YouTube, copie l&apos;adresse de ton live (bouton <em>Partager</em> ou barre d&apos;adresse), puis clique sur le bouton « Coller le lien ».
+        </p>
+        <form className="form-grid" onSubmit={saveYoutube}>
           <div className="field field-wide">
-            <label htmlFor="yt">Colle ici le lien de ton live YouTube</label>
-            <input id="yt" name="youtube_url" type="url" defaultValue={live.youtube_url ?? ""} placeholder="https://www.youtube.com/live/…" />
+            <label htmlFor="yt">Lien de ton live YouTube</label>
+            <input id="yt" name="youtube_url" type="url" defaultValue={live.youtube_url ?? ""} placeholder="https://www.youtube.com/live/…" onPaste={(e) => { const t = e.clipboardData.getData("text"); if (t) setTimeout(() => void saveYoutubeUrl(t), 0); }} />
           </div>
-          <button className="btn" type="submit">Brancher sur mon live</button>
+          <div className="control-meta">
+            <button className="btn" type="button" onClick={() => void pasteYoutube()}>Coller le lien</button>
+            <button className="btn-ghost" type="submit">Enregistrer</button>
+          </div>
         </form>
         {ytMsg && <p className={ytMsg.ok ? "info" : "error"}>{ytMsg.text}</p>}
         {embed && (
@@ -307,7 +354,10 @@ export default function StudioPage({ params }: Props) {
         )}
       </div>
 
-      <h2 className="display">Pendant le live</h2>
+      <h2 className="display" id="etape-4">4 · Lance sur Banger Tunes et enchaîne les disques</h2>
+      <p className="muted" style={{ marginBottom: 12 }}>
+        Quand tu es en direct sur YouTube, clique sur « Démarrer » ci-dessous : le public voit alors ton live et chaque disque que tu passes.
+      </p>
       <LiveControl live={live} onLiveChange={setLive} compact />
     </div>
   );
