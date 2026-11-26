@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import FollowButton from "@/components/FollowButton";
 import { getSupabase } from "@/lib/supabase";
@@ -26,6 +26,7 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
   const [connected, setConnected] = useState(false);
   const [replayStart, setReplayStart] = useState<number | null>(null);
   const liveId = initialLive.id;
+  const playerRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
     const sb = getSupabase();
@@ -141,14 +142,18 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
               <strong>{dj.name}</strong>
             </Link>
             {dj.genre ? ` · ${dj.genre}` : ""}
-            {dj.city ? ` · ${dj.city}` : ""}{" "}
-            <FollowButton djId={dj.id} djName={dj.name} />
+            {dj.city ? ` · ${dj.city}` : ""}
           </p>
+        )}
+        {dj && (
+          <div className="live-follow">
+            <FollowButton djId={dj.id} djName={dj.name} className="pill-btn" />
+          </div>
         )}
       </header>
 
       <div className="live-layout">
-        <div className="player">
+        <div className="player" ref={playerRef}>
           {embed ? (
             <iframe
               key={replayStart ?? "live"}
@@ -222,7 +227,7 @@ export default function LiveView({ initialLive, dj, initialTracks }: Props) {
                     <div className="track-artist">
                       {tk.artist}
                       {offset != null && (
-                        <button className="replay-btn" onClick={() => { setReplayStart(offset); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                        <button className="replay-btn" onClick={() => { setReplayStart(offset); playerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
                           ▶ {t("Écouter", "Listen")}
                         </button>
                       )}

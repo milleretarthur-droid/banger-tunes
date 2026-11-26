@@ -23,7 +23,7 @@ export const viewport: Viewport = {
   themeColor: "#0e0e0c",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
   const lang = await getLang();
   return (
     <html lang={lang === "en" ? "en-GB" : "fr"}>
@@ -49,6 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <footer className="site-footer">
           <BrandStamp />
         </footer>
+        {modal}
         </LangProvider>
       </body>
     </html>
