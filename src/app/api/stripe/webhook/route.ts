@@ -74,7 +74,9 @@ async function syncSubscription(sub: Stripe.Subscription) {
       status: sub.status,
       current_period_start: iso(item.current_period_start),
       current_period_end: iso(item.current_period_end),
-      cancel_at_period_end: sub.cancel_at_period_end,
+      // Les versions récentes de l'API Stripe signalent une résiliation par une date (cancel_at),
+      // pas toujours par cancel_at_period_end : on tient compte des deux.
+      cancel_at_period_end: sub.cancel_at_period_end || sub.cancel_at != null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "stripe_subscription_id" },
