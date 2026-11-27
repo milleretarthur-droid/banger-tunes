@@ -199,25 +199,25 @@ export default async function Home() {
         </>
       )}
 
-      <section className="section">
+      <section className="section moments-section">
         <div className="section-head">
-          <h2 className="display">{t("Comment ça marche", "How it works")}</h2>
+          <h2 className="display">{t("Le frisson du direct", "The thrill of live")}</h2>
         </div>
-        <div className="steps">
-          <div className="step">
-            <div className="step-num">01</div>
-            <h3>{t("Le DJ prépare sa tracklist", "The DJ prepares a tracklist")}</h3>
-            <p>{t("Chaque disque de son set est relié à son annonce de vente, avant le live.", "Every record in the set is linked to its sale listing before the live starts.")}</p>
+        <div className="moments">
+          <div className="moment">
+            <div className="moment-num">01</div>
+            <h3 className="display">{t("Entends-le.", "Hear it.")}</h3>
+            <p>{t("Un DJ lance son set, en direct. Le son te prend avant même que tu aies fini de t'asseoir.", "A DJ drops the needle, live. The sound hits you before you've even sat down.")}</p>
           </div>
-          <div className="step">
-            <div className="step-num">02</div>
-            <h3>{t("Il mixe, tu regardes", "They mix, you watch")}</h3>
-            <p>{t("Le live démarre sur YouTube. À chaque nouveau disque, le DJ passe au suivant.", "The live runs on YouTube. With each new record, the DJ moves on to the next one.")}</p>
+          <div className="moment">
+            <div className="moment-num">02</div>
+            <h3 className="display">{t("Repère-le.", "Spot it.")}</h3>
+            <p>{t("Ce morceau qui te fait lever la tête ? Il s'affiche à l'écran, à l'instant. Fini le « c'était quoi, ce disque ? ».", "That track that makes you look up? It's on screen, right now. No more “what was that record?”.")}</p>
           </div>
-          <div className="step">
-            <div className="step-num">03</div>
-            <h3>{t("Tu repères, tu achètes", "You spot it, you buy it")}</h3>
-            <p>{t("Le vinyle en cours s'affiche à l'écran avec un lien direct pour l'acheter.", "The record playing appears on screen with a direct link to buy it.")}</p>
+          <div className="moment">
+            <div className="moment-num">03</div>
+            <h3 className="display">{t("Emporte-le.", "Take it home.")}</h3>
+            <p>{t("Un clic et le vinyle est à toi. Le coup de cœur de la soirée, sur ton étagère.", "One click and the vinyl is yours. The night's best find, on your shelf.")}</p>
           </div>
         </div>
       </section>

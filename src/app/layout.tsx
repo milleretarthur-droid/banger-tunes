@@ -41,8 +41,8 @@ export default async function RootLayout({ children, modal }: { children: React.
           <Logo />
           <div className="nav-links">
             <Link href="/explorer">{lang === "en" ? "Explore" : "Explorer"}</Link>
-            <LangSwitch />
             <NavAuth />
+            <LangSwitch />
           </div>
         </nav>
         <main>{children}</main>

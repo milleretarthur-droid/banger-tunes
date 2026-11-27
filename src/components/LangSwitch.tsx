@@ -15,10 +15,13 @@ export default function LangSwitch() {
   }
   return (
     <span className="lang-switch" role="group" aria-label="Language">
-      {(["fr", "en"] as const).map((l) => (
-        <button key={l} type="button" className={l === lang ? "on" : ""} aria-pressed={l === lang} onClick={() => choose(l)}>
-          {l.toUpperCase()}
-        </button>
+      {(["fr", "en"] as const).map((l, i) => (
+        <span key={l}>
+          {i > 0 && <i aria-hidden="true">/</i>}
+          <button type="button" className={l === lang ? "on" : ""} aria-pressed={l === lang} onClick={() => choose(l)}>
+            {l.toUpperCase()}
+          </button>
+        </span>
       ))}
     </span>
   );
