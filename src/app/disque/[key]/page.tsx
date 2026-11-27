@@ -39,20 +39,20 @@ export default async function RecordPage({ params }: { params: Promise<{ key: st
           <h1 className="display">{r.title}</h1>
           <p className="muted">{r.artist}</p>
           <p className="muted" style={{ marginTop: 10 }}>
-            {t(`Joué dans ${r.plays} live${r.plays > 1 ? "s" : ""}`, `Played in ${r.plays} live${r.plays > 1 ? "s" : ""}`)}
+            {t(`Joué ${r.plays} fois (lives et mixes)`, `Played ${r.plays} time${r.plays > 1 ? "s" : ""} (lives and mixes)`)}
           </p>
         </div>
       </div>
 
-      <h2 className="display" style={{ fontSize: 28, marginBottom: 14 }}>{t("Où l'écouter", "Where it was played")}</h2>
+      <h2 className="display" style={{ fontSize: 28, marginBottom: 14 }}>{t("Où l'écouter", "Where to hear it")}</h2>
       <div className="record-lives">
         {lives.map((l) => (
-          <Link key={l.liveId} href={`/live/${l.liveId}`} className="record-live">
+          <Link key={`${l.kind}-${l.id}`} href={l.href} className="record-live">
             <div>
-              <strong>{l.liveTitle}</strong>
+              <strong>{l.title}</strong>
               <span>{l.djName} · {formatDate(l.playedAt, lang)}</span>
             </div>
-            <span>{l.liveStatus === "en_cours" ? "Live" : l.liveStatus === "termine" ? "Replay" : ""} →</span>
+            <span>{l.kind === "mix" ? "Mix" : l.status === "en_cours" ? "Live" : l.status === "termine" ? "Replay" : ""} →</span>
           </Link>
         ))}
       </div>

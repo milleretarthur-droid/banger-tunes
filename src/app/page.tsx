@@ -1,8 +1,9 @@
 import Link from "next/link";
 import HScroll from "@/components/HScroll";
 import { LiveCard } from "@/components/LiveCard";
+import { MixCard } from "@/components/MixCard";
 import { RecordCard } from "@/components/RecordCard";
-import { getFeaturedLive, getLives, getTracks } from "@/lib/data";
+import { getFeaturedLive, getLives, getRecentMixes, getTracks } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import { getPlayedRecords, recentlyPlayed, topPlayed } from "@/lib/records";
 import { safeImageUrl } from "@/lib/images";
@@ -27,6 +28,7 @@ export default async function Home() {
   const featuredTrack = featured?.status === "en_cours"
     ? ((await getTracks(featured.id)).find((t) => t.position === featured.current_index) ?? null)
     : null;
+  const mixes = await getRecentMixes(20);
   const records = await getPlayedRecords();
   const top = topPlayed(records, 20);
   const recent = recentlyPlayed(records, 20);
@@ -169,6 +171,19 @@ export default async function Home() {
           <HScroll>
             {termines.map((l) => (
               <LiveCard key={l.id} live={l} lang={lang} />
+            ))}
+          </HScroll>
+        </section>
+      )}
+
+      {mixes.length > 0 && (
+        <section className="section">
+          <div className="section-head">
+            <h2 className="display">{t("Mixes", "Mixes")}</h2>
+          </div>
+          <HScroll>
+            {mixes.map((m) => (
+              <MixCard key={m.id} mix={m} djName={m.dj?.name} />
             ))}
           </HScroll>
         </section>

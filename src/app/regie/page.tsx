@@ -13,7 +13,8 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { youtubeEmbedUrl } from "@/lib/youtube";
 import { useSession } from "@/lib/useSession";
 import { useLang, useT } from "@/lib/i18n";
-import type { Dj, Live } from "@/lib/types";
+import { parseMixUrl, PLATFORM_LABEL } from "@/lib/mixes";
+import type { Dj, Live, Mix } from "@/lib/types";
 import BillingPanel from "./BillingPanel";
 import CreatorSetup from "./CreatorSetup";
 import ProfilePanel from "./ProfilePanel";
@@ -25,6 +26,9 @@ export default function RegiePage() {
   const [dj, setDj] = useState<Dj | null>(null);
   const [djLoaded, setDjLoaded] = useState(false);
   const [lives, setLives] = useState<Live[]>([]);
+  const [mixes, setMixes] = useState<Mix[]>([]);
+  const [mixCover, setMixCover] = useState<string | null>(null);
+  const [mixError, setMixError] = useState<string | null>(null);
   const [when, setWhen] = useState<Date | null>(null);
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +68,7 @@ export default function RegiePage() {
       setDj(null);
       setDjLoaded(false);
       setLives([]);
+      setMixes([]);
       return;
     }
     let cancelled = false;
@@ -79,6 +84,8 @@ export default function RegiePage() {
           .eq("dj_id", d.id)
           .order("created_at", { ascending: false });
         if (!cancelled) setLives((l as Live[] | null) ?? []);
+        const { data: mx } = await sb.from("mixes").select("*").eq("dj_id", d.id).order("created_at", { ascending: false });
+        if (!cancelled) setMixes((mx as Mix[] | null) ?? []);
       }
     })();
     return () => {
@@ -161,6 +168,46 @@ export default function RegiePage() {
     router.push(`/regie/${created.slug}`);
   }
 
+  async function createMix(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setMixError(null);
+    const sb = getSupabase();
+    if (!sb || !dj) return;
+    const formEl = e.currentTarget;
+    const form = new FormData(formEl);
+    const title = String(form.get("mix_title") ?? "").trim();
+    const parsed = parseMixUrl(String(form.get("mix_url") ?? ""));
+    if (!parsed) {
+      setMixError(t("Lien non reconnu : colle l'adresse d'un mix Mixcloud, SoundCloud ou YouTube (les liens courts on.soundcloud.com ne fonctionnent pas).", "Link not recognised: paste the address of a Mixcloud, SoundCloud or YouTube mix (short on.soundcloud.com links do not work)."));
+      return;
+    }
+    let created: Mix | null = null;
+    for (let attempt = 0; attempt < 4 && !created; attempt++) {
+      const base = slugify(title, "mix");
+      const slug = attempt === 0 ? base : `${base}-${randomSuffix()}`;
+      const { data, error: err } = await sb
+        .from("mixes")
+        .insert({ dj_id: dj.id, title, slug, url: parsed.url, platform: parsed.platform, cover_url: mixCover })
+        .select()
+        .single();
+      if (!err) {
+        created = data as Mix;
+        break;
+      }
+      if (err.code !== "23505") {
+        setMixError(`${t("Création impossible", "Could not create the mix")} : ${err.message}`);
+        return;
+      }
+    }
+    if (!created) {
+      setMixError(t("Création impossible : cette adresse est déjà prise, change légèrement le titre.", "Could not create the mix: this address is already taken, change the title slightly."));
+      return;
+    }
+    formEl.reset();
+    setMixCover(null);
+    router.push(`/mes-mixes/${created.slug}`);
+  }
+
   if (!isSupabaseConfigured) {
     return (
       <div className="regie">
@@ -228,6 +275,46 @@ export default function RegiePage() {
 
           <h2 className="display">{t("Mon offre", "My plan")}</h2>
           <BillingPanel userId={session.user.id} refreshKey={billingKey} onCanPublish={setCanPublish} />
+
+          <h2 className="display">{t("Mes mixes", "My mixes")}</h2>
+          <p className="muted" style={{ marginBottom: 14 }}>
+            {t(
+              "Pas encore prêt pour le direct ? Partage un mix déjà enregistré (Mixcloud, SoundCloud ou YouTube) avec la liste des disques : le public peut les acheter. C'est gratuit et sans limite de live.",
+              "Not ready to go live yet? Share an already recorded mix (Mixcloud, SoundCloud or YouTube) with its list of records so people can buy them. It's free and does not use up a live.",
+            )}
+          </p>
+          {mixes.length > 0 && (
+            <div className="live-list" style={{ marginBottom: 18 }}>
+              {mixes.map((m) => (
+                <Link key={m.id} href={`/mes-mixes/${m.slug}`} className="live-item">
+                  <span className="live-item-title">{m.title}</span>
+                  <span className="live-item-meta">{PLATFORM_LABEL[m.platform]}</span>
+                  <span className="live-item-go">{t("Modifier", "Edit")} →</span>
+                </Link>
+              ))}
+            </div>
+          )}
+          <form className="panel form-grid" onSubmit={createMix}>
+            <div className="field">
+              <label htmlFor="mix_title">{t("Titre du mix", "Mix title")}</label>
+              <input id="mix_title" name="mix_title" required maxLength={120} />
+            </div>
+            <div className="field">
+              <label htmlFor="mix_url">{t("Lien du mix", "Mix link")}</label>
+              <input id="mix_url" name="mix_url" type="url" required placeholder="https://www.mixcloud.com/… · soundcloud.com/… · youtube.com/watch…" />
+            </div>
+            {userId && (
+              <ImageUpload
+                userId={userId}
+                kind="cover"
+                label={t("Cover du mix (facultatif)", "Mix cover (optional)")}
+                value={mixCover}
+                onChange={setMixCover}
+              />
+            )}
+            <button className="btn" type="submit">{t("Ajouter le mix", "Add the mix")}</button>
+          </form>
+          {mixError && <p className="error">{mixError}</p>}
 
           <h2 className="display">{t("Mes lives", "My lives")}</h2>
           {lives.length === 0 ? (

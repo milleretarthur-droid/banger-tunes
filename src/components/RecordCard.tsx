@@ -18,7 +18,7 @@ export function RecordCard({ record, rank, lang = "fr" }: { record: PlayedRecord
       <div className="card-body">
         <div className="card-title">{record.title}</div>
         <div className="card-sub">
-          {record.artist} · {lang === "en" ? `${n} live${n > 1 ? "s" : ""}` : `${n} live${n > 1 ? "s" : ""}`}
+          {record.artist} · {lang === "en" ? `${n} play${n > 1 ? "s" : ""}` : `${n} passage${n > 1 ? "s" : ""}`}
         </div>
       </div>
     </Link>

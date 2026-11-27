@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import FollowButton from "@/components/FollowButton";
 import { LiveCard } from "@/components/LiveCard";
-import { getDjBySlug, getLivesOfDj } from "@/lib/data";
+import { MixCard } from "@/components/MixCard";
+import { getDjBySlug, getLivesOfDj, getMixesOfDj } from "@/lib/data";
 import { safeImageUrl } from "@/lib/images";
 import { safeHttpsUrl } from "@/lib/urls";
 import { getLang, getT } from "@/lib/i18n-server";
@@ -25,6 +26,7 @@ export default async function DjPage({ params }: Props) {
   if (!dj) notFound();
 
   const lives = await getLivesOfDj(dj.id);
+  const mixes = await getMixesOfDj(dj.id);
   const enCours = lives.filter((l) => l.status === "en_cours");
   const aVenir = lives
     .filter((l) => l.status === "a_venir")
@@ -70,6 +72,13 @@ export default async function DjPage({ params }: Props) {
               <p className="empty">{t("Aucun live programmé. Suis ce profil pour être prévenu.", "No lives scheduled. Follow this profile to get notified.")}</p>
             )}
           </section>
+
+          {mixes.length > 0 && (
+            <section className="dj-section">
+              <h2 className="display">Mixes</h2>
+              <div className="grid">{mixes.map((m) => <MixCard key={m.id} mix={m} />)}</div>
+            </section>
+          )}
 
           <section className="dj-section">
             <h2 className="display">Replays</h2>
