@@ -61,3 +61,33 @@ export type Track = {
   /** online : lien d'achat · store : achat en magasin uniquement · unreleased : inédit, pas à vendre. */
   sale_mode: "online" | "store" | "unreleased";
 };
+
+export type MixPlatform = "youtube" | "mixcloud" | "soundcloud";
+
+export type Mix = {
+  id: string;
+  dj_id: string;
+  title: string;
+  slug: string;
+  url: string;
+  platform: MixPlatform;
+  cover_url: string | null;
+  created_at: string;
+};
+
+export type MixWithDj = Mix & { dj: Dj | null };
+
+export type MixTrack = {
+  id: string;
+  mix_id: string;
+  position: number;
+  title: string;
+  artist: string;
+  discogs_url: string | null;
+  price: number | null;
+  cover_url: string | null;
+  sold: boolean;
+  sale_mode: "online" | "store" | "unreleased";
+  /** Moment du mix (en secondes) où le disque démarre ; null = non renseigné. */
+  start_seconds: number | null;
+};

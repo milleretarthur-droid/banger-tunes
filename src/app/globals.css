@@ -709,7 +709,7 @@ img { display: block; max-width: 100%; }
 /* Classements de disques */
 .card-art-sq { aspect-ratio: 1 / 1; }
 .tag-rank { left: 10px; right: auto; top: 10px; background: #0e0e0c; color: var(--paper); font-family: "Space Mono", monospace; font-weight: 700; min-width: 30px; text-align: center; }
-.record-disc { position: absolute; inset: 14%; border-radius: 50%; background: radial-gradient(circle, #ff3b24 0 9%, #14130d 10% 28%, #1d1b13 29% 31%, #14130d 32% 52%, #1d1b13 53% 55%, #14130d 56%); border: 1px solid #2a271c; }
+.record-disc { position: absolute; top: 50%; left: 50%; height: 74%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, #ff3b24 0 9%, #14130d 10% 28%, #1d1b13 29% 31%, #14130d 32% 52%, #1d1b13 53% 55%, #14130d 56%); border: 1px solid #2a271c; }
 .record-head { display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 28px; align-items: end; margin-bottom: 36px; }
 .record-head .card-art { border-radius: 4px; }
 .record-head h1 { font-size: clamp(32px, 5vw, 56px); margin: 6px 0; }
@@ -732,3 +732,13 @@ img { display: block; max-width: 100%; }
   .moments { grid-template-columns: 1fr; gap: 26px; }
   .moment h3 { font-size: clamp(40px, 12vw, 56px); }
 }
+
+/* Mixes */
+.mix-layout { padding: 24px 5vw 0; }
+.mix-player { max-width: 960px; background: #000; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.mix-player iframe { display: block; width: 100%; border: 0; }
+.mix-youtube { aspect-ratio: 16 / 9; }
+.mix-youtube iframe { height: 100%; }
+.mix-mixcloud iframe { height: 120px; }
+.mix-soundcloud iframe { height: 166px; }
+.mix-card .card-art { aspect-ratio: 16 / 10; }
