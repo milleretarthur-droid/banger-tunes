@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { escapeHtml, sendEmail, siteUrl } from "@/lib/email";
+import { sendEmail, siteUrl } from "@/lib/email";
+import { buttonBlock, loadTemplate, renderEmail } from "@/lib/email-templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,18 +63,9 @@ export async function POST(req: NextRequest) {
 
     const url = `${siteUrl()}/api/subscribe/confirm?t=${token}`;
     const name = String(dj.name);
-    const sent = await sendEmail({
-      to: email,
-      subject: `Confirme tes alertes pour ${name}`,
-      text:
-        `Bonjour,\n\nTu as demandé à être prévenu quand ${name} passe en live sur Banger Tunes.\n` +
-        `Pour confirmer, clique sur ce lien :\n${url}\n\n` +
-        `Si ce n'est pas toi, ignore simplement cet email : rien ne sera activé.\n`,
-      html:
-        `<p>Bonjour,</p><p>Tu as demandé à être prévenu quand <strong>${escapeHtml(name)}</strong> passe en live sur Banger Tunes.</p>` +
-        `<p><a href="${url}" style="background:#ff3b24;color:#1a0803;padding:12px 20px;text-decoration:none;font-weight:600;border-radius:2px;display:inline-block">Confirmer mes alertes</a></p>` +
-        `<p style="color:#777">Si ce n'est pas toi, ignore simplement cet email : rien ne sera activé.</p>`,
-    });
+    const tpl = await loadTemplate(sb, "subscribe_confirm");
+    const mail = renderEmail(tpl, { dj_name: name }, { button: buttonBlock(tpl.button_label || "Confirmer mes alertes", url) });
+    const sent = await sendEmail({ to: email, ...mail });
     if (!sent) return reply(502, { error: "L'email de confirmation n'a pas pu partir. Réessaie dans un instant." });
     return reply(200, { ok: true });
   } catch (err) {

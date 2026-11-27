@@ -700,3 +700,19 @@ img { display: block; max-width: 100%; }
   .explore-promo { padding: 22px; }
   .section { padding-left: 5vw; padding-right: 5vw; }
 }
+
+/* Classements de disques */
+.card-art-sq { aspect-ratio: 1 / 1; }
+.tag-rank { left: 10px; right: auto; top: 10px; background: #0e0e0c; color: var(--paper); font-family: "Space Mono", monospace; font-weight: 700; min-width: 30px; text-align: center; }
+.record-disc { position: absolute; inset: 14%; border-radius: 50%; background: radial-gradient(circle, #ff3b24 0 9%, #14130d 10% 28%, #1d1b13 29% 31%, #14130d 32% 52%, #1d1b13 53% 55%, #14130d 56%); border: 1px solid #2a271c; }
+.record-head { display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 28px; align-items: end; margin-bottom: 36px; }
+.record-head .card-art { border-radius: 4px; }
+.record-head h1 { font-size: clamp(32px, 5vw, 56px); margin: 6px 0; }
+.record-head .muted { font-size: 17px; }
+.record-lives { display: flex; flex-direction: column; gap: 8px; }
+.record-live { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 14px 18px; border: 1px solid var(--line); border-radius: 4px; }
+.record-live:hover { border-color: var(--paper-dim); }
+.record-live strong { display: block; font-size: 16px; }
+.record-live span { font-size: 13px; color: var(--paper-dim); }
+@media (max-width: 600px) { .record-head { grid-template-columns: 110px 1fr; gap: 16px; } }
+.record-page { max-width: 900px; margin: 0 auto; padding: 40px 0 60px; }

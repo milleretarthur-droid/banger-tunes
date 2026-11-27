@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import WeeklyChart from "@/components/WeeklyChart";
+import EmailsTab from "./EmailsTab";
 import { eur, PRICING } from "@/lib/pricing";
 import { useSession } from "@/lib/useSession";
 import type { Kpis } from "@/lib/kpis";
@@ -18,7 +19,7 @@ type Overview = {
   kpis: Kpis; featuredLiveId: string | null; creators: Creator[]; lives: AdminLive[]; subscriptions: AdminSub[];
   pricing: { configured: { stripe: boolean; webhook: boolean; prices: boolean; email: boolean; cron: boolean } };
 };
-type Tab = "apercu" | "comptes" | "lives" | "offres";
+type Tab = "apercu" | "comptes" | "lives" | "offres" | "emails";
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Paris" });
 const STATUS = { a_venir: "À venir", en_cours: "En direct", termine: "Terminé" } as Record<string, string>;
@@ -87,7 +88,7 @@ export default function AdminPage() {
 
   const k = data.kpis;
   const total = (o: { dj: number; store: number; none: number }) => o.dj + o.store + o.none;
-  const tabs: [Tab, string][] = [["apercu", "Aperçu"], ["comptes", `Comptes (${data.creators.length})`], ["lives", `Lives (${k.lives.total})`], ["offres", "Offres"]];
+  const tabs: [Tab, string][] = [["apercu", "Aperçu"], ["comptes", `Comptes (${data.creators.length})`], ["lives", `Lives (${k.lives.total})`], ["offres", "Offres"], ["emails", "Emails"]];
 
   return (
     <div className="admin">
@@ -132,6 +133,8 @@ export default function AdminPage() {
           <p className="hint">Estimation à partir des abonnements actifs et des crédits achetés. Les montants exacts, remboursements et promotions sont dans Stripe.</p>
         </>
       )}
+
+      {tab === "emails" && token && <EmailsTab token={token} />}
 
       {tab === "comptes" && (
         <>
