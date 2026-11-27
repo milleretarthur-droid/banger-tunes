@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { escapeHtml, sendEmail, siteUrl } from "@/lib/email";
+import { loadTemplate, renderEmail } from "@/lib/email-templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest) {
     }
 
     const base = siteUrl();
+    const tpl = await loadTemplate(sb, "live_alert");
     let sent = 0;
     let failed = 0;
     for (const [to, items] of perEmail) {
@@ -80,17 +82,23 @@ export async function GET(req: NextRequest) {
         url: `${base}/live/${i.live.id}`,
         stop: `${base}/api/unsubscribe?t=${i.token}`,
       }));
-      const subject = lines.length === 1 ? `${lines[0].who} passe en live : ${lines[0].title}` : `${lines.length} lives à venir sur Banger Tunes`;
-      const text =
-        `Bonjour,\n\n${lines.map((l) => `• ${l.who} — ${l.title}\n  ${l.when}\n  ${l.url}\n  Ne plus recevoir d'alertes de ${l.who} : ${l.stop}`).join("\n\n")}\n`;
-      const html =
-        `<p>Bonjour,</p><ul>${lines
+      const listText = lines
+        .map((l) => `• ${l.who} — ${l.title}\n  ${l.when}\n  ${l.url}\n  Ne plus recevoir d'alertes de ${l.who} : ${l.stop}`)
+        .join("\n\n");
+      const listHtml =
+        `<ul>${lines
           .map(
             (l) =>
               `<li><strong>${escapeHtml(l.who)}</strong> — ${escapeHtml(l.title)}<br>${escapeHtml(l.when)}<br><a href="${l.url}">Voir le live</a>` +
               `<br><small><a href="${l.stop}" style="color:#777">Ne plus recevoir d'alertes de ${escapeHtml(l.who)}</a></small></li>`,
           )
           .join("")}</ul>`;
+      const { subject, html, text } = renderEmail(
+        tpl,
+        { dj_name: lines[0].who, live_title: lines[0].title, count: String(lines.length) },
+        { lives: { html: listHtml, text: listText } },
+        { multi: lines.length > 1 },
+      );
 
       if (await sendEmail({ to, subject, html, text })) {
         sent++;

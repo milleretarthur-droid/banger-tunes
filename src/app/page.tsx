@@ -1,8 +1,10 @@
 import Link from "next/link";
 import HScroll from "@/components/HScroll";
 import { LiveCard } from "@/components/LiveCard";
+import { RecordCard } from "@/components/RecordCard";
 import { getFeaturedLive, getLives, getTracks } from "@/lib/data";
 import { formatDate } from "@/lib/format";
+import { getPlayedRecords, recentlyPlayed, topPlayed } from "@/lib/records";
 import { safeImageUrl } from "@/lib/images";
 import { safeHttpsUrl } from "@/lib/urls";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -25,6 +27,9 @@ export default async function Home() {
   const featuredTrack = featured?.status === "en_cours"
     ? ((await getTracks(featured.id)).find((t) => t.position === featured.current_index) ?? null)
     : null;
+  const records = await getPlayedRecords();
+  const top = topPlayed(records, 20);
+  const recent = recentlyPlayed(records, 20);
   const featuredDiscogs = safeHttpsUrl(featuredTrack?.discogs_url);
 
   return (
@@ -167,6 +172,31 @@ export default async function Home() {
             ))}
           </HScroll>
         </section>
+      )}
+
+      {records.length > 0 && (
+        <>
+          <section className="section">
+            <div className="section-head">
+              <h2 className="display">{t("Les plus joués", "Most played")}</h2>
+            </div>
+            <HScroll>
+              {top.map((r, i) => (
+                <RecordCard key={r.key} record={r} rank={i + 1} lang={lang} />
+              ))}
+            </HScroll>
+          </section>
+          <section className="section">
+            <div className="section-head">
+              <h2 className="display">{t("Derniers disques joués", "Recently played")}</h2>
+            </div>
+            <HScroll>
+              {recent.map((r) => (
+                <RecordCard key={r.key} record={r} lang={lang} />
+              ))}
+            </HScroll>
+          </section>
+        </>
       )}
 
       <section className="section">
