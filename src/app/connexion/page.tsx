@@ -136,6 +136,14 @@ export default function ConnexionPage() {
         <button className="btn" type="submit" disabled={busy}>
           {mode === "login" ? t("Se connecter", "Log in") : t("Créer mon compte", "Create my account")}
         </button>
+        {mode === "signup" && (
+          <p className="hint">
+            {t("En créant un compte, tu acceptes les ", "By creating an account, you accept the ")}
+            <a className="legal-link" href="/cgu">{t("conditions générales", "terms")}</a>
+            {t(" et la ", " and the ")}
+            <a className="legal-link" href="/confidentialite">{t("politique de confidentialité", "privacy policy")}</a>.
+          </p>
+        )}
         {error && <p className="error">{error}</p>}
         {info && <p className="info">{info}</p>}
       </form>

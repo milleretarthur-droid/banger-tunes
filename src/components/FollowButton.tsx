@@ -89,7 +89,7 @@ export default function FollowButton({ djId, djName, className = "btn-ghost", la
               </div>
               {/* Champ piège pour les robots : invisible pour les humains. */}
               <input name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hp" />
-              <p className="hint">{t("Ton adresse sert uniquement à t'envoyer ces alertes. Désinscription en un clic dans chaque email.", "Your address is only used to send you these alerts. Unsubscribe in one click from every email.")}</p>
+              <p className="hint">{t("Ton adresse sert uniquement à t'envoyer ces alertes. Désinscription en un clic dans chaque email.", "Your address is only used to send you these alerts. Unsubscribe in one click from every email.")} <a className="legal-link" href="/confidentialite">{t("Confidentialité", "Privacy")}</a></p>
               <div className="control-meta">
                 <button className="btn" type="submit" disabled={busy}>{busy ? t("Envoi…", "Sending…") : t("Me prévenir", "Notify me")}</button>
                 <button type="button" className="btn-ghost" onClick={close}>{t("Annuler", "Cancel")}</button>

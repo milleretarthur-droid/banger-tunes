@@ -48,6 +48,11 @@ export default async function RootLayout({ children, modal }: { children: React.
         <main>{children}</main>
         <footer className="site-footer">
           <BrandStamp />
+          <nav className="footer-links" aria-label={lang === "en" ? "Legal" : "Informations légales"}>
+            <Link href="/mentions-legales">{lang === "en" ? "Legal notice" : "Mentions légales"}</Link>
+            <Link href="/cgu">{lang === "en" ? "Terms" : "CGU / CGV"}</Link>
+            <Link href="/confidentialite">{lang === "en" ? "Privacy" : "Confidentialité"}</Link>
+          </nav>
         </footer>
         {modal}
         </LangProvider>
