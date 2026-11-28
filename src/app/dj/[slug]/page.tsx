@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import FollowButton from "@/components/FollowButton";
 import { LiveCard } from "@/components/LiveCard";
 import { MixCard } from "@/components/MixCard";
+import { parseSellerUsername } from "@/lib/discogs-url";
 import { getDjBySlug, getLivesOfDj, getMixesOfDj } from "@/lib/data";
 import { safeImageUrl } from "@/lib/images";
 import { safeHttpsUrl } from "@/lib/urls";
@@ -33,6 +35,7 @@ export default async function DjPage({ params }: Props) {
     .sort((a, b) => (a.scheduled_at ?? "9999").localeCompare(b.scheduled_at ?? "9999"));
   const replays = lives.filter((l) => l.status === "termine");
   const discogs = safeHttpsUrl(dj.discogs_url);
+  const seller = dj.discogs_url ? parseSellerUsername(dj.discogs_url) : null;
 
   const photo = safeImageUrl(dj.photo_url);
 
@@ -54,6 +57,11 @@ export default async function DjPage({ params }: Props) {
               <a className="btn-ghost" href={discogs} target="_blank" rel="noopener noreferrer">
                 {t("Boutique en ligne", "Online shop")} ↗
               </a>
+            )}
+            {seller && (
+              <Link className="btn-ghost" href={`/bac/${encodeURIComponent(seller)}`}>
+                ▶ {t("Écouter le bac", "Listen to the crate")}
+              </Link>
             )}
           </div>
 

@@ -214,6 +214,16 @@ export default async function Home() {
         </>
       )}
 
+      <section className="section">
+        <div className="digger-promo">
+          <div>
+            <h2 className="display">Digger</h2>
+            <p>{t("Écoute les disques en vente d'un vendeur Discogs, un par un, en continu. Tu entends, tu achètes.", "Listen to a Discogs seller's records for sale, one after another, non-stop. You hear it, you buy it.")}</p>
+          </div>
+          <Link className="btn" href="/bac">▶ {t("Écouter un bac", "Listen to a crate")}</Link>
+        </div>
+      </section>
+
       <section className="section moments-section">
         <div className="section-head">
           <h2 className="display">{t("Le frisson du direct", "The thrill of live")}</h2>
