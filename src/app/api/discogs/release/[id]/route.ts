@@ -14,6 +14,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json(await getReleaseMedia(id), { headers: { "Cache-Control": "public, s-maxage=3600" } });
   } catch (e) {
     const code = e instanceof DiscogsError ? e.code : "unavailable";
-    return NextResponse.json({ error: code }, { status: STATUS[code] });
+    return NextResponse.json({ error: code, detail: e instanceof DiscogsError ? e.detail : undefined }, { status: STATUS[code] });
   }
 }

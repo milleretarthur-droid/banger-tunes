@@ -13,7 +13,7 @@ export const discogsConfigured = () => Boolean(process.env.DISCOGS_KEY && proces
 export { parseSellerUsername } from "./discogs-url";
 
 export class DiscogsError extends Error {
-  constructor(public code: "not_configured" | "not_found" | "rate_limited" | "unavailable") {
+  constructor(public code: "not_configured" | "not_found" | "rate_limited" | "unavailable", public detail?: string) {
     super(code);
   }
 }
@@ -24,19 +24,24 @@ async function get<T>(path: string): Promise<T> {
   try {
     res = await fetch(`${BASE}${path}`, {
       headers: {
-        Authorization: `Discogs key=${process.env.DISCOGS_KEY}, secret=${process.env.DISCOGS_SECRET}`,
+        Authorization: `Discogs key=${process.env.DISCOGS_KEY!.trim()}, secret=${process.env.DISCOGS_SECRET!.trim()}`,
         "User-Agent": "BangerTunes/1.0 +https://banger-tunes.com",
         Accept: "application/vnd.discogs.v2.discogs+json",
       },
       next: { revalidate: CACHE_SECONDS },
       signal: AbortSignal.timeout(9000),
     });
-  } catch {
-    throw new DiscogsError("unavailable");
+  } catch (e) {
+    const detail = `réseau : ${e instanceof Error ? e.name + " " + e.message : "inconnu"}`.slice(0, 200);
+    console.error("[discogs]", path.split("?")[0], detail);
+    throw new DiscogsError("unavailable", detail);
   }
   if (res.status === 404) throw new DiscogsError("not_found");
   if (res.status === 429) throw new DiscogsError("rate_limited");
-  if (!res.ok) throw new DiscogsError("unavailable");
+  if (!res.ok) {
+    console.error("[discogs]", path.split("?")[0], "HTTP", res.status);
+    throw new DiscogsError("unavailable", `HTTP ${res.status}`);
+  }
   return (await res.json()) as T;
 }
 
